@@ -7,10 +7,11 @@ db.serialize(() => {
     CREATE TABLE IF NOT EXISTS clientes (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       nome TEXT NOT NULL,
-      email TEXT,
-      telefone TEXT,
-      cpf TEXT,
-      endereco TEXT
+      email TEXT NOT NULL,
+      telefone TEXT NOT NULL,
+      cpf TEXT NOT NULL,
+      endereco TEXT NOT NULL,
+      data_nascimento TEXT NOT NULL
     )
   `);
 });
