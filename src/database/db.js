@@ -1,5 +1,14 @@
 const sqlite3 = require('sqlite3').verbose();
-const db = new sqlite3.Database('./database/database.db');
+const path = require('path'); // Importa o módulo 'path' do Node.js
+
+// Cria um caminho seguro e correto para o arquivo do banco de dados, antes estava puxando direto do diretorio
+const dbPath = path.resolve(__dirname, 'database.db');
+
+const db = new sqlite3.Database(dbPath, (err) => {
+  if (err) {
+    console.error("Erro ao abrir o banco de dados:", err.message);
+  }
+});
 
 db.serialize(() => {
   // Tabela de Clientes, agora com tipo_pessoa e documento
