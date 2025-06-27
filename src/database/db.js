@@ -1,17 +1,11 @@
 const sqlite3 = require('sqlite3').verbose();
-const path = require('path'); // Importa o módulo 'path' do Node.js
+const path = require('path');
 
-// Cria um caminho seguro e correto para o arquivo do banco de dados, antes estava puxando direto do diretorio
 const dbPath = path.resolve(__dirname, 'database.db');
-
-const db = new sqlite3.Database(dbPath, (err) => {
-  if (err) {
-    console.error("Erro ao abrir o banco de dados:", err.message);
-  }
-});
+const db = new sqlite3.Database(dbPath);
 
 db.serialize(() => {
-  // Tabela de Clientes, agora com tipo_pessoa e documento
+  // Tabela de Clientes 
   db.run(`
     CREATE TABLE IF NOT EXISTS clientes (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -25,7 +19,7 @@ db.serialize(() => {
     )
   `);
 
-  // Tabela de Orçamentos (sem alterações)
+  // Tabela de Orçamentos 
   db.run(`
     CREATE TABLE IF NOT EXISTS orcamentos (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -38,7 +32,7 @@ db.serialize(() => {
     )
   `);
 
-  // Tabela de Itens do Orçamento (sem alterações)
+  // Tabela de Itens do Orçamento 
   db.run(`
     CREATE TABLE IF NOT EXISTS itens_orcamento (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -49,6 +43,16 @@ db.serialize(() => {
       preco_m2 REAL NOT NULL,
       valor_item REAL NOT NULL,
       FOREIGN KEY (orcamento_id) REFERENCES orcamentos (id) ON DELETE CASCADE
+    )
+  `);
+
+  // Tabela de Usuários
+  db.run(`
+    CREATE TABLE IF NOT EXISTS usuarios (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      nome TEXT NOT NULL,
+      email TEXT NOT NULL UNIQUE,
+      senha_hash TEXT NOT NULL
     )
   `);
 });
