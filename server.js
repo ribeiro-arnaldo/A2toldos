@@ -1,7 +1,7 @@
-// Este arquivo é apenas a "chave de ignição" do sistema.
-const app = require('./src/app');
+require('dotenv').config();
 
-const port = 3000;
+const app = require('./src/app');
+const port = process.env.PORT || 3000;
 
 app.listen(port, () => {
   console.log(`Servidor rodando na porta ${port}`);

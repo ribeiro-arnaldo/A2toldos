@@ -1,9 +1,11 @@
 const express = require('express');
+const morgan = require('morgan'); 
 const app = express();
 
 app.use(express.json());
+app.use(morgan('dev'));
 
-// O caminho para as rotas começa com './' porque elas estão no mesmo nível do app.js
+// Importa e usa as nossas rotas
 const clientesRoutes = require('./routes/clientes');
 const orcamentosRoutes = require('./routes/orcamentos');
 
