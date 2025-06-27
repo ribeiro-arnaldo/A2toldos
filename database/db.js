@@ -24,6 +24,7 @@ db.serialize(() => {
       descricao TEXT,
       valor_total REAL NOT NULL,
       data_orcamento TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'PENDENTE',
       FOREIGN KEY (cliente_id) REFERENCES clientes (id) ON DELETE CASCADE
     )
   `);

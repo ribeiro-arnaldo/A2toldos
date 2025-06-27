@@ -3,6 +3,7 @@ const router = express.Router();
 const db = require('../database/db');
 
 // Rota POST: Cadastrar um novo orçamento
+// Nenhuma mudança aqui. O status 'PENDENTE' será adicionado automaticamente pelo banco.
 router.post('/', (req, res) => {
   const { cliente_id, descricao, itens } = req.body;
 
@@ -55,10 +56,10 @@ router.post('/', (req, res) => {
   });
 });
 
-// Rota GET (TODOS): Listar todos os orçamentos
+// Rota GET (TODOS): Listar todos os orçamentos (agora com status)
 router.get('/', (req, res) => {
   const query = `
-    SELECT o.id, o.descricao, o.valor_total, o.data_orcamento, c.nome as nome_cliente
+    SELECT o.id, o.descricao, o.valor_total, o.data_orcamento, o.status, c.nome as nome_cliente
     FROM orcamentos o
     JOIN clientes c ON o.cliente_id = c.id
     ORDER BY o.data_orcamento DESC
@@ -71,11 +72,11 @@ router.get('/', (req, res) => {
   });
 });
 
-// Rota GET (POR ID): Buscar um orçamento completo com seus itens
+// Rota GET (POR ID): Buscar um orçamento completo (agora com status)
 router.get('/:id', (req, res) => {
   const { id } = req.params;
   const orcamentoQuery = `
-    SELECT o.id, o.descricao, o.valor_total, o.data_orcamento, c.nome as nome_cliente, c.email as email_cliente, c.telefone as telefone_cliente
+    SELECT o.id, o.descricao, o.valor_total, o.data_orcamento, o.status, c.nome as nome_cliente, c.email as email_cliente, c.telefone as telefone_cliente
     FROM orcamentos o
     JOIN clientes c ON o.cliente_id = c.id
     WHERE o.id = ?
@@ -87,7 +88,6 @@ router.get('/:id', (req, res) => {
     if (!orcamento) {
       return res.status(404).json({ erro: 'Orçamento não encontrado.' });
     }
-
     const itensQuery = 'SELECT * FROM itens_orcamento WHERE orcamento_id = ?';
     db.all(itensQuery, [id], (itemErr, itens) => {
       if (itemErr) {
@@ -100,11 +100,11 @@ router.get('/:id', (req, res) => {
 });
 
 // Rota PUT: Atualizar um orçamento existente
+// (Nenhuma mudança aqui, o status é gerenciado separadamente)
 router.put('/:id', (req, res) => {
   const { id } = req.params;
   const { cliente_id, descricao, itens } = req.body;
 
-  // Validações e cálculos (iguais ao POST)
   if (!cliente_id) return res.status(400).json({ erro: 'O ID do cliente é obrigatório.' });
   if (!Array.isArray(itens) || itens.length === 0) return res.status(400).json({ erro: 'O orçamento deve ter pelo menos um item.' });
   
@@ -118,14 +118,11 @@ router.put('/:id', (req, res) => {
   
   db.serialize(() => {
     db.run('BEGIN TRANSACTION;');
-    // 1. Deleta os itens ANTIGOS do orçamento
     db.run('DELETE FROM itens_orcamento WHERE orcamento_id = ?', [id], (err) => {
       if (err) {
         db.run('ROLLBACK;');
         return res.status(500).json({ erro: 'Erro ao limpar itens antigos do orçamento.', detalhes: err.message });
       }
-
-      // 2. Atualiza o orçamento principal
       const updateQuery = `UPDATE orcamentos SET cliente_id = ?, descricao = ?, valor_total = ? WHERE id = ?`;
       db.run(updateQuery, [cliente_id, descricao, valor_total_calculado, id], function(err) {
         if (err) {
@@ -136,8 +133,6 @@ router.put('/:id', (req, res) => {
           db.run('ROLLBACK;');
           return res.status(404).json({ erro: 'Orçamento não encontrado para atualização.' });
         }
-
-        // 3. Insere os itens NOVOS
         const itemQuery = `INSERT INTO itens_orcamento (orcamento_id, descricao_item, largura, comprimento, preco_m2, valor_item) VALUES (?, ?, ?, ?, ?, ?)`;
         let itemsProcessed = 0;
         itens.forEach(item => {
@@ -158,7 +153,30 @@ router.put('/:id', (req, res) => {
   });
 });
 
-// Rota DELETE: Excluir um orçamento (e seus itens, graças ao ON DELETE CASCADE)
+// [NOVO] Rota PATCH: Atualizar APENAS o status de um orçamento
+router.patch('/:id/status', (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+
+  // Validação do status recebido
+  const statusPermitidos = ['PENDENTE', 'APROVADO', 'REPROVADO', 'EM PRODUCAO', 'CONCLUIDO', 'ENTREGUE'];
+  if (!status || !statusPermitidos.includes(status.toUpperCase())) {
+    return res.status(400).json({ erro: 'Status inválido ou não fornecido.', permitidos: statusPermitidos });
+  }
+
+  const query = `UPDATE orcamentos SET status = ? WHERE id = ?`;
+  db.run(query, [status.toUpperCase(), id], function(err) {
+    if (err) {
+      return res.status(500).json({ erro: 'Erro ao atualizar o status do orçamento.', detalhes: err.message });
+    }
+    if (this.changes === 0) {
+      return res.status(404).json({ erro: 'Orçamento não encontrado.' });
+    }
+    res.status(200).json({ mensagem: `Status do orçamento atualizado para ${status.toUpperCase()} com sucesso!` });
+  });
+});
+
+// Rota DELETE: Excluir um orçamento
 router.delete('/:id', (req, res) => {
   const { id } = req.params;
   const query = 'DELETE FROM orcamentos WHERE id = ?';
