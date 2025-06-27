@@ -1,25 +1,18 @@
 const db = require('../database/db');
 const { cpf, cnpj } = require('cpf-cnpj-validator');
-const validator = require('validator');
 
 class ClienteService {
 
   // POST /clientes
   async create(dadosCliente) {
     const { nome, email, telefone, tipo_pessoa, documento, endereco, data_nascimento } = dadosCliente;
-    if (!nome || !email || !telefone || !tipo_pessoa || !documento || !endereco || !data_nascimento) {
-      throw new Error('Todos os campos são obrigatórios.');
-    }
-    let documentoFormatado = '';
-    if (tipo_pessoa.toUpperCase() === 'FISICA') {
-      if (!cpf.isValid(documento)) throw new Error('O CPF informado é inválido.');
-      documentoFormatado = cpf.strip(documento);
-    } else if (tipo_pessoa.toUpperCase() === 'JURIDICA') {
-      if (!cnpj.isValid(documento)) throw new Error('O CNPJ informado é inválido.');
-      documentoFormatado = cnpj.strip(documento);
-    } else {
-      throw new Error("Tipo de pessoa deve ser 'FISICA' ou 'JURIDICA'.");
-    }
+
+    // Lógica 1: Formatar o documento para salvar no banco
+    const documentoFormatado = tipo_pessoa.toUpperCase() === 'FISICA' 
+      ? cpf.strip(documento) 
+      : cnpj.strip(documento);
+
+    // Lógica 2: Verificar se o documento já existe (regra de negócio)
     const checkDocumentQuery = 'SELECT id FROM clientes WHERE documento = ?';
     const clienteExistente = await new Promise((resolve, reject) => {
       db.get(checkDocumentQuery, [documentoFormatado], (err, row) => {
@@ -27,9 +20,12 @@ class ClienteService {
         resolve(row);
       });
     });
+
     if (clienteExistente) {
       throw new Error('Este documento já está cadastrado.');
     }
+
+    // Lógica 3: Inserir no banco
     const insertQuery = `INSERT INTO clientes (nome, email, telefone, tipo_pessoa, documento, endereco, data_nascimento) VALUES (?, ?, ?, ?, ?, ?, ?)`;
     const novoCliente = await new Promise((resolve, reject) => {
       db.run(insertQuery, [nome, email, telefone, tipo_pessoa.toUpperCase(), documentoFormatado, endereco, data_nascimento], function (err) {
@@ -39,7 +35,6 @@ class ClienteService {
     });
     return novoCliente;
   }
-
 
   // GET /clientes
   async listAll() {
@@ -70,7 +65,11 @@ class ClienteService {
   // PUT /clientes/:id
   async update(id, dadosCliente) {
     const { nome, email, telefone, tipo_pessoa, documento, endereco, data_nascimento } = dadosCliente;
+    
+    // Lógica 1: Formatar o documento
     let documentoFormatado = tipo_pessoa.toUpperCase() === 'FISICA' ? cpf.strip(documento) : cnpj.strip(documento);
+
+    // Lógica 2: Verificar se o documento é unico na atualização
     const checkDocumentQuery = 'SELECT id FROM clientes WHERE documento = ? AND id != ?';
     const clienteExistente = await new Promise((resolve, reject) => {
         db.get(checkDocumentQuery, [documentoFormatado, id], (err, row) => {
@@ -81,6 +80,8 @@ class ClienteService {
     if (clienteExistente) {
         throw new Error('O documento informado já pertence a outro cliente.');
     }
+
+    // Lógica 3: Atualizar no banco
     const query = `UPDATE clientes SET nome = ?, email = ?, telefone = ?, tipo_pessoa = ?, documento = ?, endereco = ?, data_nascimento = ? WHERE id = ?`;
     return new Promise((resolve, reject) => {
       db.run(query, [nome, email, telefone, tipo_pessoa.toUpperCase(), documentoFormatado, endereco, data_nascimento, id], function(err) {
