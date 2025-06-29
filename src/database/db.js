@@ -5,7 +5,6 @@ const dbPath = path.resolve(__dirname, 'database.db');
 const db = new sqlite3.Database(dbPath);
 
 db.serialize(() => {
-  // Tabela de Clientes 
   db.run(`
     CREATE TABLE IF NOT EXISTS clientes (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -19,10 +18,10 @@ db.serialize(() => {
     )
   `);
 
-  // Tabela de Orçamentos 
   db.run(`
     CREATE TABLE IF NOT EXISTS orcamentos (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
+      numero_orcamento TEXT NOT NULL UNIQUE,
       cliente_id INTEGER NOT NULL,
       descricao TEXT,
       valor_total REAL NOT NULL,
@@ -32,7 +31,6 @@ db.serialize(() => {
     )
   `);
 
-  // Tabela de Itens do Orçamento 
   db.run(`
     CREATE TABLE IF NOT EXISTS itens_orcamento (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -46,7 +44,6 @@ db.serialize(() => {
     )
   `);
 
-  // Tabela de Usuários
   db.run(`
     CREATE TABLE IF NOT EXISTS usuarios (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
