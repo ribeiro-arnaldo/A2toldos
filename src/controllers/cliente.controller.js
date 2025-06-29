@@ -6,12 +6,10 @@ class ClienteController {
   async create(req, res) {    
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      // Se houver erros, retorna 400 com a lista de erros.
       return res.status(400).json({ errors: errors.array() });
     }
 
     try {
-      // Se não há erros, prossegue normalmente para o service.
       const novoCliente = await clienteService.create(req.body);
       res.status(201).json(novoCliente);
     } catch (error) {
@@ -21,8 +19,9 @@ class ClienteController {
 //GET
   async listAll(req, res) {
     try {
-      const clientes = await clienteService.listAll();
-      res.status(200).json(clientes);
+      // Passa os filtros da URL (req.query) para o serviço
+      const resultado = await clienteService.listAll(req.query);
+      res.status(200).json(resultado);
     } catch (error) {
       res.status(500).json({ erro: error.message });
     }
@@ -41,7 +40,6 @@ class ClienteController {
   }
 //PUT
   async update(req, res) {
-    // MUDANÇA 3: Adicionamos a mesma verificação na rota de atualização.
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });

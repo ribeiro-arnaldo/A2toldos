@@ -7,12 +7,10 @@ class ClienteService {
   async create(dadosCliente) {
     const { nome, email, telefone, tipo_pessoa, documento, endereco, data_nascimento } = dadosCliente;
 
-    // Lógica 1: Formatar o documento para salvar no banco
     const documentoFormatado = tipo_pessoa.toUpperCase() === 'FISICA' 
       ? cpf.strip(documento) 
       : cnpj.strip(documento);
 
-    // Lógica 2: Verificar se o documento já existe (regra de negócio)
     const checkDocumentQuery = 'SELECT id FROM clientes WHERE documento = ?';
     const clienteExistente = await new Promise((resolve, reject) => {
       db.get(checkDocumentQuery, [documentoFormatado], (err, row) => {
@@ -25,7 +23,6 @@ class ClienteService {
       throw new Error('Este documento já está cadastrado.');
     }
 
-    // Lógica 3: Inserir no banco
     const insertQuery = `INSERT INTO clientes (nome, email, telefone, tipo_pessoa, documento, endereco, data_nascimento) VALUES (?, ?, ?, ?, ?, ?, ?)`;
     const novoCliente = await new Promise((resolve, reject) => {
       db.run(insertQuery, [nome, email, telefone, tipo_pessoa.toUpperCase(), documentoFormatado, endereco, data_nascimento], function (err) {
@@ -36,15 +33,50 @@ class ClienteService {
     return novoCliente;
   }
 
-  // GET /clientes
-  async listAll() {
-    const query = 'SELECT * FROM clientes ORDER BY nome';
-    return new Promise((resolve, reject) => {
-      db.all(query, [], (err, rows) => {
-        if (err) reject(new Error('Erro ao buscar clientes.'));
+  // GET /clientes (MÉTODO ATUALIZADO)
+  async listAll(filtros) {
+    let query = 'SELECT * FROM clientes WHERE 1=1';
+    const params = [];
+
+    if (filtros.nome) {
+      query += ' AND nome LIKE ?';
+      params.push(`%${filtros.nome}%`);
+    }
+
+    if (filtros.documento) {
+      query += ' AND documento = ?';
+      params.push(filtros.documento);
+    }
+    
+    const countQuery = query.replace('SELECT *', 'SELECT COUNT(*) as total');
+    const total = await new Promise((resolve, reject) => {
+      db.get(countQuery, params, (err, row) => {
+        if (err) reject(new Error('Erro ao contar clientes.'));
+        resolve(row ? row.total : 0);
+      });
+    });
+
+    query += ' ORDER BY nome';
+
+    const pagina = parseInt(filtros.pagina) || 1;
+    const limite = parseInt(filtros.limite) || 10;
+    const offset = (pagina - 1) * limite;
+    query += ' LIMIT ? OFFSET ?';
+    params.push(limite, offset);
+
+    const clientes = await new Promise((resolve, reject) => {
+      db.all(query, params, (err, rows) => {
+        if (err) reject(new Error(`Erro ao buscar clientes: ${err.message}`));
         resolve(rows);
       });
     });
+
+    return {
+      clientes,
+      total,
+      pagina,
+      limite
+    };
   }
 
   // GET /clientes/:id
@@ -66,10 +98,8 @@ class ClienteService {
   async update(id, dadosCliente) {
     const { nome, email, telefone, tipo_pessoa, documento, endereco, data_nascimento } = dadosCliente;
     
-    // Lógica 1: Formatar o documento
     let documentoFormatado = tipo_pessoa.toUpperCase() === 'FISICA' ? cpf.strip(documento) : cnpj.strip(documento);
 
-    // Lógica 2: Verificar se o documento é unico na atualização
     const checkDocumentQuery = 'SELECT id FROM clientes WHERE documento = ? AND id != ?';
     const clienteExistente = await new Promise((resolve, reject) => {
         db.get(checkDocumentQuery, [documentoFormatado, id], (err, row) => {
@@ -81,7 +111,6 @@ class ClienteService {
         throw new Error('O documento informado já pertence a outro cliente.');
     }
 
-    // Lógica 3: Atualizar no banco
     const query = `UPDATE clientes SET nome = ?, email = ?, telefone = ?, tipo_pessoa = ?, documento = ?, endereco = ?, data_nascimento = ? WHERE id = ?`;
     return new Promise((resolve, reject) => {
       db.run(query, [nome, email, telefone, tipo_pessoa.toUpperCase(), documentoFormatado, endereco, data_nascimento, id], function(err) {
