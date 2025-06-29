@@ -6,13 +6,11 @@ export default {
     ],
     theme: {
       extend: {
-        // Adicionando as cores da sua marca para fácil utilização
         colors: {
           'brand-blue': '#06397d',
           'brand-yellow': '#ffb634',
           'brand-white': '#fefefe',
         },
-        // Definindo a fonte padrão do projeto
         fontFamily: {
           'sans': ['Montserrat', 'sans-serif'],
         }
