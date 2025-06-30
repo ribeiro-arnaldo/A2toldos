@@ -53,12 +53,72 @@ class OrcamentoService {
             });
           });
         });
-        // ---- FIM DA MUDANÇA ----
       });
     });
   }
 
-   async update(id, orcamentoData) {
+  async listAll(filtros) {
+    let query = `
+      SELECT o.id, o.numero_orcamento, o.descricao, o.valor_total, o.data_orcamento, o.status, c.nome as nome_cliente
+      FROM orcamentos o
+      JOIN clientes c ON o.cliente_id = c.id
+      WHERE 1=1
+    `;
+    const params = [];
+
+    if (filtros && filtros.cliente_id) {
+      query += ' AND o.cliente_id = ?';
+      params.push(filtros.cliente_id);
+    }
+    
+    query += ' ORDER BY o.data_orcamento DESC';
+
+    return new Promise((resolve, reject) => {
+      db.all(query, params, (err, rows) => {
+        if (err) reject(new Error(`Erro ao buscar orçamentos: ${err.message}`));
+        
+        resolve({
+          orcamentos: rows,
+          total: rows.length, // Simples contagem por enquanto
+        });
+      });
+    });
+  }
+
+  async findById(id) {
+    const orcamentoQuery = `
+      SELECT
+        o.id, o.numero_orcamento, o.descricao, o.valor_total, o.data_orcamento,
+        o.status, o.cliente_id,
+        c.nome as nome_cliente,
+        c.email as email_cliente,
+        c.telefone as telefone_cliente
+      FROM orcamentos o
+      JOIN clientes c ON o.cliente_id = c.id
+      WHERE o.id = ?
+    `;
+    
+    const orcamento = await new Promise((resolve, reject) => {
+      db.get(orcamentoQuery, [id], (err, row) => {
+        if (err) reject(new Error('Erro ao buscar o orçamento.'));
+        resolve(row);
+      });
+    });
+
+    if (!orcamento) throw new Error('Orçamento não encontrado.');
+
+    const itensQuery = 'SELECT * FROM itens_orcamento WHERE orcamento_id = ?';
+    const itens = await new Promise((resolve, reject) => {
+      db.all(itensQuery, [id], (err, rows) => {
+        if (err) reject(new Error('Erro ao buscar os itens do orçamento.'));
+        resolve(rows);
+      });
+    });
+
+    return { ...orcamento, itens };
+  } // <--- A CHAVE EM FALTA ESTAVA AQUI
+
+  async update(id, orcamentoData) {
     const { cliente_id, descricao, itens } = orcamentoData;
 
     let valor_total_calculado = 0;
@@ -104,44 +164,6 @@ class OrcamentoService {
         });
       });
     });
-  }
-
-    async listAll() {
-        const query = `
-      SELECT o.id, o.numero_orcamento, o.descricao, o.valor_total, o.data_orcamento, o.status, c.nome as nome_cliente
-      FROM orcamentos o
-      JOIN clientes c ON o.cliente_id = c.id
-      ORDER BY o.data_orcamento DESC
-    `;
-    return new Promise((resolve, reject) => {
-      db.all(query, [], (err, rows) => {
-        if (err) reject(new Error('Erro ao buscar orçamentos.'));
-        resolve(rows);
-      });
-    });
-  }
-
-  async findById(id) {
-     const orcamentoQuery = `
-      SELECT o.id, o.numero_orcamento, o.descricao, o.valor_total, o.data_orcamento, o.status, c.nome as nome_cliente, c.email as email_cliente, c.telefone as telefone_cliente
-      FROM orcamentos o
-      JOIN clientes c ON o.cliente_id = c.id WHERE o.id = ?
-    `;
-    const orcamento = await new Promise((resolve, reject) => {
-      db.get(orcamentoQuery, [id], (err, row) => {
-        if (err) reject(new Error('Erro ao buscar o orçamento.'));
-        resolve(row);
-      });
-    });
-    if (!orcamento) throw new Error('Orçamento não encontrado.');
-    const itensQuery = 'SELECT * FROM itens_orcamento WHERE orcamento_id = ?';
-    const itens = await new Promise((resolve, reject) => {
-      db.all(itensQuery, [id], (err, rows) => {
-        if (err) reject(new Error('Erro ao buscar os itens do orçamento.'));
-        resolve(rows);
-      });
-    });
-    return { ...orcamento, itens };
   }
 
   async updateStatus(id, status) {

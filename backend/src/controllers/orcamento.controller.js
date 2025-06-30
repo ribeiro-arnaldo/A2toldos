@@ -36,8 +36,8 @@ class OrcamentoController {
 
   async listAll(req, res) {
     try {
-      const orcamentos = await orcamentoService.listAll();
-      res.status(200).json(orcamentos);
+      const resultado = await orcamentoService.listAll(req.query);
+      res.status(200).json(resultado);
     } catch (error) {
       res.status(500).json({ erro: error.message });
     }

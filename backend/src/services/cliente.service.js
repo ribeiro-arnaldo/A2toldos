@@ -6,11 +6,9 @@ class ClienteService {
   // POST /clientes
   async create(dadosCliente) {
     const { nome, email, telefone, tipo_pessoa, documento, endereco, data_nascimento } = dadosCliente;
-
     const documentoFormatado = tipo_pessoa.toUpperCase() === 'FISICA' 
       ? cpf.strip(documento) 
       : cnpj.strip(documento);
-
     const checkDocumentQuery = 'SELECT id FROM clientes WHERE documento = ?';
     const clienteExistente = await new Promise((resolve, reject) => {
       db.get(checkDocumentQuery, [documentoFormatado], (err, row) => {
@@ -18,11 +16,9 @@ class ClienteService {
         resolve(row);
       });
     });
-
     if (clienteExistente) {
       throw new Error('Este documento já está cadastrado.');
     }
-
     const insertQuery = `INSERT INTO clientes (nome, email, telefone, tipo_pessoa, documento, endereco, data_nascimento) VALUES (?, ?, ?, ?, ?, ?, ?)`;
     const novoCliente = await new Promise((resolve, reject) => {
       db.run(insertQuery, [nome, email, telefone, tipo_pessoa.toUpperCase(), documentoFormatado, endereco, data_nascimento], function (err) {
@@ -33,7 +29,7 @@ class ClienteService {
     return novoCliente;
   }
 
-  // GET /clientes (MÉTODO ATUALIZADO)
+  // GET /clientes (MÉTODO ATUALIZADO PARA INCLUIR FILTRO DE TELEFONE)
   async listAll(filtros) {
     let query = 'SELECT * FROM clientes WHERE 1=1';
     const params = [];
@@ -42,10 +38,14 @@ class ClienteService {
       query += ' AND nome LIKE ?';
       params.push(`%${filtros.nome}%`);
     }
-
     if (filtros.documento) {
       query += ' AND documento = ?';
       params.push(filtros.documento);
+    }
+    // Lógica para buscar por telefone
+    if (filtros.telefone) {
+      query += ' AND telefone LIKE ?';
+      params.push(`%${filtros.telefone}%`);
     }
     
     const countQuery = query.replace('SELECT *', 'SELECT COUNT(*) as total');
@@ -97,9 +97,7 @@ class ClienteService {
   // PUT /clientes/:id
   async update(id, dadosCliente) {
     const { nome, email, telefone, tipo_pessoa, documento, endereco, data_nascimento } = dadosCliente;
-    
     let documentoFormatado = tipo_pessoa.toUpperCase() === 'FISICA' ? cpf.strip(documento) : cnpj.strip(documento);
-
     const checkDocumentQuery = 'SELECT id FROM clientes WHERE documento = ? AND id != ?';
     const clienteExistente = await new Promise((resolve, reject) => {
         db.get(checkDocumentQuery, [documentoFormatado, id], (err, row) => {
@@ -110,7 +108,6 @@ class ClienteService {
     if (clienteExistente) {
         throw new Error('O documento informado já pertence a outro cliente.');
     }
-
     const query = `UPDATE clientes SET nome = ?, email = ?, telefone = ?, tipo_pessoa = ?, documento = ?, endereco = ?, data_nascimento = ? WHERE id = ?`;
     return new Promise((resolve, reject) => {
       db.run(query, [nome, email, telefone, tipo_pessoa.toUpperCase(), documentoFormatado, endereco, data_nascimento, id], function(err) {

@@ -1,14 +1,19 @@
 const express = require('express');
-const morgan = require('morgan'); 
+const morgan = require('morgan');
+const cors = require('cors');
 const app = express();
 
+
+app.use(cors({
+  origin: '*' 
+}));
 app.use(express.json());
 app.use(morgan('dev'));
 
-// Importa e usa as nossas rotas
-const clientesRoutes = require('./routes/clientes');
-const orcamentosRoutes = require('./routes/orcamentos');
-const authRoutes = require('./routes/auth');
+// Rotas existentes
+const clientesRoutes = require('./routes/clientes.js');
+const orcamentosRoutes = require('./routes/orcamentos.js');
+const authRoutes = require('./routes/auth.js');
 
 app.use('/clientes', clientesRoutes);
 app.use('/orcamentos', orcamentosRoutes);
