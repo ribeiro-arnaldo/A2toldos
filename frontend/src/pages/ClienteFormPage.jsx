@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiSave, FiXCircle } from 'react-icons/fi';
-import api from '../api/api';
 import { cpf as cpfValidator, cnpj as cnpjValidator } from 'cpf-cnpj-validator';
+import api from '../api/api';
+import toast from 'react-hot-toast';
 
 const ClienteFormPage = () => {
   const navigate = useNavigate();
 
+  // Estado para guardar os dados do formulário
   const [formData, setFormData] = useState({
     nome: '',
     email: '',
@@ -16,53 +18,45 @@ const ClienteFormPage = () => {
     endereco: '',
     data_nascimento: '',
   });
-  
+
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
-  
-   const handleChange = (e) => {
+
+  const handleChange = (e) => {
     const { name, value } = e.target;
     let processedValue = value;
 
-    // Aplica os filtros em tempo real
+    // Limpeza e formatação em tempo real
     if (name === 'nome') {
-      // Permite apenas letras, espaços e os caracteres comuns em nomes/razões sociais
-      processedValue = value.replace(/[^A-Za-zÀ-ÖØ-öø-ÿ\s.\-&]/g, '');
+        processedValue = value.replace(/[^A-Za-zÀ-ÖØ-öø-ÿ\s.\-&]/g, '');
     } else if (name === 'telefone') {
-      // Permite apenas números e os caracteres de formatação de telefone
-      processedValue = value.replace(/[^0-9\s()-]/g, '').slice(0, 15); // Limita a 15 caracteres
+        processedValue = value.replace(/\D/g, '').slice(0, 11);
     } else if (name === 'documento') {
-      // Permite apenas números
-      processedValue = value.replace(/[^0-9]/g, '');
-      // Limita o tamanho com base no tipo de pessoa
-      const maxLength = formData.tipo_pessoa === 'FISICA' ? 11 : 14;
-      processedValue = processedValue.slice(0, maxLength);
+        processedValue = value.replace(/\D/g, '');
+        const maxLength = formData.tipo_pessoa === 'FISICA' ? 11 : 14;
+        processedValue = processedValue.slice(0, maxLength);
     }
-
-    setFormData(prevState => ({
-      ...prevState,
-      [name]: processedValue,
-    }));
-
+    
+    setFormData(prevState => ({ ...prevState, [name]: processedValue }));
+    
+    // Limpa o erro do campo quando o usuário começa a corrigir
     if (errors[name]) {
       setErrors(prevErrors => ({ ...prevErrors, [name]: null }));
     }
   };
 
-  // A função de validação continua a ser a segurança final antes do envio
   const validateForm = () => {
     const newErrors = {};
-    if (!formData.nome) newErrors.nome = 'O nome é obrigatório.';
+    if (!formData.nome.trim()) newErrors.nome = 'O nome é obrigatório.';
     if (!formData.email) newErrors.email = 'O e-mail é obrigatório.';
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) newErrors.email = 'Formato de e-mail inválido.';
     
     if (!formData.documento) newErrors.documento = 'O documento é obrigatório.';
     else if (formData.tipo_pessoa === 'FISICA' && !cpfValidator.isValid(formData.documento)) newErrors.documento = 'CPF inválido.';
     else if (formData.tipo_pessoa === 'JURIDICA' && !cnpjValidator.isValid(formData.documento)) newErrors.documento = 'CNPJ inválido.';
-
-    if (!formData.telefone) newErrors.telefone = 'O telefone é obrigatório.';
-    if (!formData.endereco) newErrors.endereco = 'O endereço é obrigatório.';
+    
     if (!formData.data_nascimento) newErrors.data_nascimento = 'A data é obrigatória.';
+
     return newErrors;
   };
 
@@ -71,20 +65,21 @@ const ClienteFormPage = () => {
     const formErrors = validateForm();
     if (Object.keys(formErrors).length > 0) {
       setErrors(formErrors);
+      toast.error('Por favor, corrija os erros no formulário.');
       return;
     }
 
     setLoading(true);
     setErrors({});
-
     try {
+      // Usamos o método POST para criar um novo cliente
       await api.post('/clientes', formData);
-      alert('Cliente cadastrado com sucesso!');
-      navigate('/clientes');
+      toast.success('Cliente cadastrado com sucesso!');
+      navigate('/clientes'); // Redireciona de volta para a lista
     } catch (err) {
-      const errorMessage = err.response?.data?.errors ? err.response.data.errors[0].msg : (err.response?.data?.erro || 'Ocorreu um erro desconhecido');
-      setErrors({ api: errorMessage });
-      console.error(err);
+      const errorMessage = err.response?.data?.erro || 'Ocorreu um erro desconhecido.';
+      setErrors({ api: errorMessage }); // Mostra erro do backend
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -92,31 +87,29 @@ const ClienteFormPage = () => {
 
   return (
     <div className="p-6">
-      <h1 className="text-3xl font-bold text-brand-blue mb-6">Novo Cliente</h1>
-      <form onSubmit={handleSubmit} className="bg-white p-8 rounded-lg shadow-lg space-y-4">
-        
+      <h1 className="text-3xl font-bold text-brand-blue mb-6">Adicionar Novo Cliente</h1>
+      <form onSubmit={handleSubmit} className="bg-white p-8 rounded-lg shadow-lg space-y-4" noValidate>
+        {/* Campo Nome */}
         <div>
           <label htmlFor="nome" className="block text-sm font-medium text-gray-700">Nome Completo / Razão Social</label>
-          <input type="text" name="nome" id="nome" value={formData.nome} onChange={handleChange} required 
-                 className={`mt-1 block w-full px-3 py-2 bg-white border rounded-md shadow-sm focus:outline-none focus:ring-brand-yellow focus:border-brand-yellow ${errors.nome ? 'border-red-500' : 'border-gray-300'}`} />
+          <input type="text" name="nome" id="nome" value={formData.nome} onChange={handleChange} required className={`mt-1 block w-full px-3 py-2 bg-white border rounded-md shadow-sm focus:outline-none focus:ring-brand-yellow focus:border-brand-yellow ${errors.nome ? 'border-red-500' : 'border-gray-300'}`} />
           {errors.nome && <p className="mt-1 text-sm text-red-600">{errors.nome}</p>}
         </div>
 
+        {/* Campos E-mail e Telefone */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700">E-mail</label>
-            <input type="email" name="email" id="email" value={formData.email} onChange={handleChange} required 
-                   className={`mt-1 block w-full px-3 py-2 bg-white border rounded-md shadow-sm focus:outline-none focus:ring-brand-yellow focus:border-brand-yellow ${errors.email ? 'border-red-500' : 'border-gray-300'}`} />
+            <input type="email" name="email" id="email" value={formData.email} onChange={handleChange} required className={`mt-1 block w-full px-3 py-2 bg-white border rounded-md shadow-sm focus:outline-none focus:ring-brand-yellow focus:border-brand-yellow ${errors.email ? 'border-red-500' : 'border-gray-300'}`} />
             {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
           </div>
           <div>
             <label htmlFor="telefone" className="block text-sm font-medium text-gray-700">Telefone</label>
-            <input type="text" name="telefone" id="telefone" value={formData.telefone} onChange={handleChange} required
-                   className={`mt-1 block w-full px-3 py-2 bg-white border rounded-md shadow-sm focus:outline-none focus:ring-brand-yellow focus:border-brand-yellow ${errors.telefone ? 'border-red-500' : 'border-gray-300'}`} />
-            {errors.telefone && <p className="mt-1 text-sm text-red-600">{errors.telefone}</p>}
+            <input type="tel" name="telefone" id="telefone" value={formData.telefone} onChange={handleChange} required className={`mt-1 block w-full px-3 py-2 bg-white border rounded-md shadow-sm focus:outline-none focus:ring-brand-yellow focus:border-brand-yellow ${errors.telefone ? 'border-red-500' : 'border-gray-300'}`} />
           </div>
         </div>
-        
+
+        {/* Campos Tipo de Pessoa e Documento */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label htmlFor="tipo_pessoa" className="block text-sm font-medium text-gray-700">Tipo de Pessoa</label>
@@ -127,34 +120,33 @@ const ClienteFormPage = () => {
           </div>
           <div>
             <label htmlFor="documento" className="block text-sm font-medium text-gray-700">CPF / CNPJ</label>
-            <input type="text" name="documento" id="documento" value={formData.documento} onChange={handleChange} required 
-                   maxLength={formData.tipo_pessoa === 'FISICA' ? 11 : 14} // Limite dinâmico
-                   className={`mt-1 block w-full px-3 py-2 bg-white border rounded-md shadow-sm focus:outline-none focus:ring-brand-yellow focus:border-brand-yellow ${errors.documento ? 'border-red-500' : 'border-gray-300'}`} />
+            <input type="text" name="documento" id="documento" value={formData.documento} onChange={handleChange} required maxLength={14} className={`mt-1 block w-full px-3 py-2 bg-white border rounded-md shadow-sm focus:outline-none focus:ring-brand-yellow focus:border-brand-yellow ${errors.documento ? 'border-red-500' : 'border-gray-300'}`} />
             {errors.documento && <p className="mt-1 text-sm text-red-600">{errors.documento}</p>}
           </div>
         </div>
-
+        
+        {/* Campos Endereço e Data */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
+            {/* AQUI ESTAVA O ERRO */}
             <label htmlFor="endereco" className="block text-sm font-medium text-gray-700">Endereço</label>
-            <input type="text" name="endereco" id="endereco" value={formData.endereco} onChange={handleChange} required
-                   className={`mt-1 block w-full px-3 py-2 bg-white border rounded-md shadow-sm focus:outline-none focus:ring-brand-yellow focus:border-brand-yellow ${errors.endereco ? 'border-red-500' : 'border-gray-300'}`} />
-            {errors.endereco && <p className="mt-1 text-sm text-red-600">{errors.endereco}</p>}
+            <input type="text" name="endereco" id="endereco" value={formData.endereco} onChange={handleChange} required className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-brand-yellow focus:border-brand-yellow" />
           </div>
           <div>
             <label htmlFor="data_nascimento" className="block text-sm font-medium text-gray-700">Data de Nascimento / Fundação</label>
-            <input type="date" name="data_nascimento" id="data_nascimento" value={formData.data_nascimento} onChange={handleChange} required 
-                   className={`mt-1 block w-full px-3 py-2 bg-white border rounded-md shadow-sm focus:outline-none focus:ring-brand-yellow focus:border-brand-yellow ${errors.data_nascimento ? 'border-red-500' : 'border-gray-300'}`} />
+            <input type="date" name="data_nascimento" id="data_nascimento" value={formData.data_nascimento} onChange={handleChange} required className={`mt-1 block w-full px-3 py-2 bg-white border rounded-md shadow-sm focus:outline-none focus:ring-brand-yellow focus:border-brand-yellow ${errors.data_nascimento ? 'border-red-500' : 'border-gray-300'}`} />
             {errors.data_nascimento && <p className="mt-1 text-sm text-red-600">{errors.data_nascimento}</p>}
           </div>
         </div>
-        
+
+        {/* Exibição de Erro da API */}
         {errors.api && (
           <div className="p-3 my-4 text-center text-sm text-red-800 bg-red-100 rounded-lg">
             {errors.api}
           </div>
         )}
-        
+
+        {/* Botões de Ação */}
         <div className="pt-4 flex justify-end space-x-4">
           <button type="button" onClick={() => navigate('/clientes')} className="bg-gray-200 text-gray-800 font-bold py-2 px-6 rounded-lg flex items-center hover:bg-gray-300 transition-colors">
             <FiXCircle className="mr-2" />
