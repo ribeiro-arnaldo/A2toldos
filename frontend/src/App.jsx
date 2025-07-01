@@ -2,34 +2,32 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 
-// Importa todas as nossas páginas
-import LoginPage from './pages/LoginPage';
-import DashboardPage from './pages/DashboardPage';
-import ClientesPage from './pages/ClientesPage';
-import ClienteFormPage from './pages/ClienteFormPage'; // O formulário de criação
-import ClienteDetailPage from './pages/ClienteDetailPage';
-import ClienteEditPage from './pages/ClienteEditPage';
-import OrcamentosPage from './pages/OrcamentosPage';
-import OrcamentoDetailPage from './pages/OrcamentoDetailPage';
+// Imports com os caminhos atualizados para as novas pastas
+import LoginPage from './pages/login/LoginPage';
+import DashboardPage from './pages/dashboard/DashboardPage';
+import ClientesPage from './pages/clientes/ClientesPage';
+import ClienteFormPage from './pages/clientes/ClienteFormPage';
+import ClienteDetailPage from './pages/clientes/ClienteDetailPage';
+import ClienteEditPage from './pages/clientes/ClienteEditPage';
+import OrcamentosPage from './pages/orcamentos/OrcamentosPage';
+import OrcamentoDetailPage from './pages/orcamentos/OrcamentoDetailPage';
 
-// Importa o nosso layout principal
+// Componentes de Layout e API
 import MainLayout from './components/layout/MainLayout';
 
-// Componente "guarda" para proteger as nossas rotas
 const PrivateWrapper = ({ isAuthenticated, onLogout }) => {
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
-  // A mágica acontece aqui: O MainLayout precisa renderizar os filhos (as páginas)
   return <MainLayout onLogout={onLogout} />;
 };
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
-
-  // O estado da busca de clientes que vive no topo da aplicação
+  
   const [clientes, setClientes] = useState([]);
+  const [filtrosClientes, setFiltrosClientes] = useState({ tipo: 'nome', termo: '' });
   const [buscaRealizada, setBuscaRealizada] = useState(false);
 
   useEffect(() => {
@@ -65,13 +63,11 @@ function App() {
         }}
       />
       <Routes>
-        {/* Rota Pública de Login */}
         <Route 
           path="/login" 
           element={!isAuthenticated ? <LoginPage onLoginSuccess={handleLoginSuccess} /> : <Navigate to="/" />} 
         />
         
-        {/* Agrupamento de Todas as Rotas Privadas */}
         <Route element={<PrivateWrapper isAuthenticated={isAuthenticated} onLogout={handleLogout} />}>
           <Route path="/" element={<DashboardPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
@@ -82,12 +78,13 @@ function App() {
               <ClientesPage 
                 clientes={clientes}
                 setClientes={setClientes}
+                filtros={filtrosClientes}
+                setFiltros={setFiltrosClientes}
                 buscaRealizada={buscaRealizada}
                 setBuscaRealizada={setBuscaRealizada}
               />
             } 
           />
-          {/* A ORDEM AQUI É CRÍTICA */}
           <Route path="/clientes/novo" element={<ClienteFormPage />} />
           <Route path="/clientes/:id/editar" element={<ClienteEditPage />} />
           <Route path="/clientes/:id" element={<ClienteDetailPage />} />

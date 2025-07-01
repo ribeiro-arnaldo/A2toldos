@@ -2,13 +2,12 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiSave, FiXCircle } from 'react-icons/fi';
 import { cpf as cpfValidator, cnpj as cnpjValidator } from 'cpf-cnpj-validator';
-import api from '../api/api';
+import api from '../../api/api';
 import toast from 'react-hot-toast';
 
 const ClienteFormPage = () => {
   const navigate = useNavigate();
 
-  // Estado para guardar os dados do formulário
   const [formData, setFormData] = useState({
     nome: '',
     email: '',
@@ -26,10 +25,10 @@ const ClienteFormPage = () => {
     const { name, value } = e.target;
     let processedValue = value;
 
-    // Limpeza e formatação em tempo real
     if (name === 'nome') {
         processedValue = value.replace(/[^A-Za-zÀ-ÖØ-öø-ÿ\s.\-&]/g, '');
     } else if (name === 'telefone') {
+        // Remove tudo que não for dígito e LIMITA a 11 caracteres
         processedValue = value.replace(/\D/g, '').slice(0, 11);
     } else if (name === 'documento') {
         processedValue = value.replace(/\D/g, '');
@@ -39,7 +38,6 @@ const ClienteFormPage = () => {
     
     setFormData(prevState => ({ ...prevState, [name]: processedValue }));
     
-    // Limpa o erro do campo quando o usuário começa a corrigir
     if (errors[name]) {
       setErrors(prevErrors => ({ ...prevErrors, [name]: null }));
     }
@@ -51,6 +49,12 @@ const ClienteFormPage = () => {
     if (!formData.email) newErrors.email = 'O e-mail é obrigatório.';
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) newErrors.email = 'Formato de e-mail inválido.';
     
+    // Validação de telefone
+    const telefoneLimpo = formData.telefone.replace(/\D/g, '');
+    if (telefoneLimpo.length > 0 && telefoneLimpo.length < 10) {
+        newErrors.telefone = 'O telefone deve ter 10 ou 11 dígitos.';
+    }
+
     if (!formData.documento) newErrors.documento = 'O documento é obrigatório.';
     else if (formData.tipo_pessoa === 'FISICA' && !cpfValidator.isValid(formData.documento)) newErrors.documento = 'CPF inválido.';
     else if (formData.tipo_pessoa === 'JURIDICA' && !cnpjValidator.isValid(formData.documento)) newErrors.documento = 'CNPJ inválido.';
@@ -72,13 +76,12 @@ const ClienteFormPage = () => {
     setLoading(true);
     setErrors({});
     try {
-      // Usamos o método POST para criar um novo cliente
       await api.post('/clientes', formData);
       toast.success('Cliente cadastrado com sucesso!');
-      navigate('/clientes'); // Redireciona de volta para a lista
+      navigate('/clientes', { state: { refresh: true } });
     } catch (err) {
       const errorMessage = err.response?.data?.erro || 'Ocorreu um erro desconhecido.';
-      setErrors({ api: errorMessage }); // Mostra erro do backend
+      setErrors({ api: errorMessage });
       toast.error(errorMessage);
     } finally {
       setLoading(false);
@@ -106,6 +109,7 @@ const ClienteFormPage = () => {
           <div>
             <label htmlFor="telefone" className="block text-sm font-medium text-gray-700">Telefone</label>
             <input type="tel" name="telefone" id="telefone" value={formData.telefone} onChange={handleChange} required className={`mt-1 block w-full px-3 py-2 bg-white border rounded-md shadow-sm focus:outline-none focus:ring-brand-yellow focus:border-brand-yellow ${errors.telefone ? 'border-red-500' : 'border-gray-300'}`} />
+            {errors.telefone && <p className="mt-1 text-sm text-red-600">{errors.telefone}</p>}
           </div>
         </div>
 
@@ -128,7 +132,6 @@ const ClienteFormPage = () => {
         {/* Campos Endereço e Data */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            {/* AQUI ESTAVA O ERRO */}
             <label htmlFor="endereco" className="block text-sm font-medium text-gray-700">Endereço</label>
             <input type="text" name="endereco" id="endereco" value={formData.endereco} onChange={handleChange} required className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-brand-yellow focus:border-brand-yellow" />
           </div>
@@ -139,14 +142,12 @@ const ClienteFormPage = () => {
           </div>
         </div>
 
-        {/* Exibição de Erro da API */}
         {errors.api && (
           <div className="p-3 my-4 text-center text-sm text-red-800 bg-red-100 rounded-lg">
             {errors.api}
           </div>
         )}
 
-        {/* Botões de Ação */}
         <div className="pt-4 flex justify-end space-x-4">
           <button type="button" onClick={() => navigate('/clientes')} className="bg-gray-200 text-gray-800 font-bold py-2 px-6 rounded-lg flex items-center hover:bg-gray-300 transition-colors">
             <FiXCircle className="mr-2" />

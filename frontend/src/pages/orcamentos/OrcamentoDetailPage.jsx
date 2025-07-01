@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { FiFileText, FiArrowLeft, FiGrid, FiUser } from 'react-icons/fi';
-import api from '../api/api';
+import { FiFileText, FiArrowLeft, FiGrid } from 'react-icons/fi';
+
+// CAMINHOS DE IMPORT ATUALIZADOS
+import api from '../../api/api';
+import StatusBadge from '../../components/common/StatusBadge';
 
 const OrcamentoDetailPage = () => {
-  const { id } = useParams(); // Pega o ID do orçamento da URL
+  const { id } = useParams();
 
   const [orcamento, setOrcamento] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -14,7 +17,6 @@ const OrcamentoDetailPage = () => {
     const fetchOrcamento = async () => {
       setLoading(true);
       try {
-        // Usamos a nossa rota que busca um orçamento completo, incluindo os itens
         const response = await api.get(`/orcamentos/${id}`);
         setOrcamento(response.data);
         setError(null);
@@ -29,31 +31,29 @@ const OrcamentoDetailPage = () => {
     fetchOrcamento();
   }, [id]);
 
-  if (loading) return <div className="text-center p-12">A carregar detalhes do orçamento...</div>;
-  if (error) return <div className="text-red-500 text-center p-12">{error}</div>;
-  if (!orcamento) return <div className="text-center p-12">Orçamento não encontrado.</div>;
-
-  // Função para formatar o valor para o padrão brasileiro
   const formatCurrency = (value) => {
+    if (typeof value !== 'number') return 'R$ 0,00';
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL',
     }).format(value);
   };
   
-  // Função para formatar a data
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
   };
 
+  if (loading) return <div className="text-center p-12">A carregar detalhes do orçamento...</div>;
+  if (error) return <div className="text-red-500 text-center p-12">{error}</div>;
+  if (!orcamento) return <div className="text-center p-12">Orçamento não encontrado.</div>;
+
   return (
     <div>
-      <Link to={`/clientes/${orcamento.cliente_id}`} className="inline-flex items-center text-brand-blue font-semibold hover:underline mb-6">
+      <Link to={orcamento.cliente_id ? `/clientes/${orcamento.cliente_id}` : '/orcamentos'} className="inline-flex items-center text-brand-blue font-semibold hover:underline mb-6">
         <FiArrowLeft className="mr-2" />
-        Voltar para os Detalhes do Cliente
+        Voltar
       </Link>
 
-      {/* Cabeçalho do Orçamento */}
       <div className="bg-white p-6 rounded-lg shadow-lg mb-6">
         <div className="flex justify-between items-start">
           <div>
@@ -63,9 +63,7 @@ const OrcamentoDetailPage = () => {
             </h1>
             <p className="font-mono text-lg text-gray-600 mt-1">{orcamento.numero_orcamento}</p>
           </div>
-          <div className={`px-4 py-1 text-sm font-bold text-white rounded-full ${orcamento.status === 'APROVADO' ? 'bg-green-500' : 'bg-yellow-500'}`}>
-            {orcamento.status}
-          </div>
+          <StatusBadge status={orcamento.status} />
         </div>
         <div className="border-t border-gray-200 mt-4 pt-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-gray-700">
@@ -77,7 +75,6 @@ const OrcamentoDetailPage = () => {
         </div>
       </div>
 
-      {/* Tabela de Itens do Orçamento */}
       <div className="bg-white p-6 rounded-lg shadow-lg">
         <h2 className="text-2xl font-bold text-brand-blue mb-4 flex items-center">
           <FiGrid className="mr-3" />
@@ -95,7 +92,7 @@ const OrcamentoDetailPage = () => {
               </tr>
             </thead>
             <tbody>
-              {orcamento.itens.map((item) => (
+              {orcamento.itens && orcamento.itens.map((item) => (
                 <tr key={item.id} className="border-b border-gray-100">
                   <td className="p-4">{item.descricao_item || '-'}</td>
                   <td className="p-4 text-center">{item.largura.toFixed(2)}</td>

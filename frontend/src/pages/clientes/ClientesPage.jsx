@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { FiUsers, FiPlus, FiSearch, FiEdit, FiTrash2, FiInfo, FiRotateCw } from 'react-icons/fi';
-import api from '../api/api';
-import ConfirmationModal from '../components/ConfirmationModal';
-import toast from 'react-hot-toast';
+// Caminhos de import atualizados
+import api from '../../api/api';
+import ConfirmationModal from '../../components/common/ConfirmationModal';
 
-// Funções auxiliares para formatar os dados para exibição
+// O resto do código permanece o mesmo que da última vez
 const formatarDocumento = (doc, tipo) => {
   if (!doc) return '';
   const docLimpo = String(doc).replace(/\D/g, '');
@@ -17,45 +17,43 @@ const formatarDocumento = (doc, tipo) => {
 
 const formatarTelefone = (tel) => {
   if (!tel) return '';
-  const telLimpo = String(tel).replace(/\D/g, '');
+  const telLimpo = String(tel).replace(/\D/g, '').slice(0, 11);
+
   if (telLimpo.length === 11) {
     return telLimpo.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
   }
-  return telLimpo.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3');
+  
+  if (telLimpo.length === 10) {
+    return telLimpo.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3');
+  }
+  
+  return telLimpo;
 };
 
-
-// O componente recebe o estado dos clientes do App.jsx
-const ClientesPage = ({ clientes, setClientes, buscaRealizada, setBuscaRealizada }) => {
-  // Estado para controlar o loading e os inputs do formulário de busca
+const ClientesPage = ({ clientes, setClientes, filtros, setFiltros, buscaRealizada, setBuscaRealizada }) => {
+  const location = useLocation();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [clienteParaApagar, setClienteParaApagar] = useState(null);
-  
-  // Estado local para os campos de busca
-  const [tipoFiltro, setTipoFiltro] = useState('nome');
-  const [termoBusca, setTermoBusca] = useState('');
 
   const handleSearch = async (e) => {
     if (e) e.preventDefault();
     setLoading(true);
     setError(null);
-    setBuscaRealizada(true); // Informa ao App que uma busca foi feita
+    setBuscaRealizada(true);
 
-    const params = { pagina: 1, limite: 10 }; // Você pode adicionar paginação aqui no futuro
-    if (termoBusca) {
-      // Limpa o termo de busca para documentos e telefones antes de enviar
-      if (tipoFiltro === 'documento' || tipoFiltro === 'telefone') {
-        params[tipoFiltro] = termoBusca.replace(/\D/g, '');
+    const params = { pagina: 1, limite: 10 };
+    if (filtros.termo) {
+      if (filtros.tipo === 'documento' || filtros.tipo === 'telefone') {
+        params[filtros.tipo] = filtros.termo.replace(/\D/g, '');
       } else {
-        params[tipoFiltro] = termoBusca;
+        params[filtros.tipo] = filtros.termo;
       }
     }
-
     try {
       const response = await api.get('/clientes', { params });
-      setClientes(response.data.clientes); // Atualiza o estado no App.jsx
+      setClientes(response.data.clientes);
     } catch (err) {
       setError('Falha ao buscar clientes.');
       toast.error('Falha ao buscar clientes.');
@@ -64,9 +62,14 @@ const ClientesPage = ({ clientes, setClientes, buscaRealizada, setBuscaRealizada
     }
   };
 
+  useEffect(() => {
+    if (location.state?.refresh) {
+      handleSearch();
+    }
+  }, [location]);
+
   const handleClearSearch = () => {
-    setTipoFiltro('nome');
-    setTermoBusca('');
+    setFiltros({ tipo: 'nome', termo: '' });
     setClientes([]);
     setBuscaRealizada(false);
     setError(null);
@@ -81,7 +84,6 @@ const ClientesPage = ({ clientes, setClientes, buscaRealizada, setBuscaRealizada
     if (!clienteParaApagar) return;
     try {
       await api.delete(`/clientes/${clienteParaApagar.id}`);
-      // Atualiza a lista de clientes removendo o que foi apagado
       setClientes(clientes.filter(cliente => cliente.id !== clienteParaApagar.id));
       toast.success('Cliente apagado com sucesso!');
     } catch (err) {
@@ -100,13 +102,17 @@ const ClientesPage = ({ clientes, setClientes, buscaRealizada, setBuscaRealizada
         <Link to="/clientes/novo" className="bg-brand-blue text-white font-bold py-2 px-4 rounded-lg flex items-center hover:bg-opacity-90 transition-colors"><FiPlus className="mr-2" /> Adicionar Cliente</Link>
       </div>
       
-      {/* Formulário de Busca */}
       <div className="mb-6 p-4 bg-white rounded-lg shadow">
         <form onSubmit={handleSearch}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label htmlFor="tipo-filtro" className="block text-sm font-medium text-gray-700">Filtrar por</label>
-              <select id="tipo-filtro" value={tipoFiltro} onChange={(e) => setTipoFiltro(e.target.value)} className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-brand-yellow focus:border-brand-yellow">
+              <select 
+                id="tipo-filtro" 
+                value={filtros.tipo} 
+                onChange={(e) => setFiltros({ ...filtros, tipo: e.target.value })} 
+                className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-brand-yellow focus:border-brand-yellow"
+              >
                 <option value="nome">Nome</option>
                 <option value="documento">Documento</option>
                 <option value="telefone">Telefone</option>
@@ -114,7 +120,14 @@ const ClientesPage = ({ clientes, setClientes, buscaRealizada, setBuscaRealizada
             </div>
             <div>
               <label htmlFor="termo-busca" className="block text-sm font-medium text-gray-700">Termo de Busca</label>
-              <input type="text" id="termo-busca" className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-brand-yellow focus:border-brand-yellow" value={termoBusca} onChange={(e) => setTermoBusca(e.target.value)} placeholder={`Digite o ${tipoFiltro} do cliente...`} />
+              <input 
+                type="text" 
+                id="termo-busca" 
+                className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-brand-yellow focus:border-brand-yellow" 
+                value={filtros.termo} 
+                onChange={(e) => setFiltros({ ...filtros, termo: e.target.value })} 
+                placeholder={`Digite o ${filtros.tipo} do cliente...`} 
+              />
             </div>
           </div>
           <div className="md:col-span-2 mt-4 flex justify-end space-x-4">
@@ -124,7 +137,6 @@ const ClientesPage = ({ clientes, setClientes, buscaRealizada, setBuscaRealizada
         </form>
       </div>
 
-      {/* Tabela de Resultados */}
       <div className="bg-white rounded-lg shadow-lg overflow-x-auto">
         { !buscaRealizada ? (
           <div className="text-center p-12 text-gray-500">
@@ -155,7 +167,7 @@ const ClientesPage = ({ clientes, setClientes, buscaRealizada, setBuscaRealizada
                   <tr key={cliente.id} className="border-b border-gray-100 hover:bg-gray-50">
                     <td className="p-4 font-semibold text-brand-blue hover:underline"><Link to={`/clientes/${cliente.id}`}>{cliente.nome}</Link></td>
                     <td className="p-4">{formatarDocumento(cliente.documento, cliente.tipo_pessoa)}</td>
-                    <td className="p-4">{formatarTelefone(cliente.telefone)}</td>
+                    <td className="p-4 whitespace-nowrap">{formatarTelefone(cliente.telefone)}</td>
                     <td className="p-4">{cliente.email}</td>
                     <td className="p-4">
                       <div className="flex items-center justify-center space-x-3">
