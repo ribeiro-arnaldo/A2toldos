@@ -4,7 +4,7 @@ import { FiSave, FiXCircle } from 'react-icons/fi';
 import api from '../../api/api';
 import toast from 'react-hot-toast';
 import { cpf as cpfValidator, cnpj as cnpjValidator } from 'cpf-cnpj-validator';
-import ClienteForm from '../../components/clientes/ClienteForm'; // Importa o formulário reutilizável
+import ClienteForm from '../../components/clientes/ClienteForm';
 
 const ClienteEditPage = () => {
   const navigate = useNavigate();
@@ -17,7 +17,6 @@ const ClienteEditPage = () => {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(true);
 
-  // Busca os dados do cliente para preencher o formulário
   useEffect(() => {
     const fetchCliente = async () => {
       try {
@@ -47,13 +46,14 @@ const ClienteEditPage = () => {
 
     if (!formData.documento) newErrors.documento = 'O documento é obrigatório.';
     else if (formData.tipo_pessoa === 'FISICA' && !cpfValidator.isValid(formData.documento)) newErrors.documento = 'CPF inválido.';
-    else if (formData.tipo_pessoa === 'JURIDICA' && !cnpjValidator.isValid(formData.documento)) newErrors.documento = 'CNPJ inválido.';
-    
+    else if (formData.tipo_pessoa === 'JURIDICA' && !cnpjValidator.isValid(formData.documento)) newErrors.documento = 'CNPJ inválido.';   
+
+    if (!formData.endereco.trim()) newErrors.endereco = 'O endereço é obrigatório.'; 
+       
     if (!formData.data_nascimento) newErrors.data_nascimento = 'A data é obrigatória.';
     return newErrors;
   };
 
-  // Lógica de envio para ATUALIZAR (PUT)
   const handleSubmit = async (e) => {
     e.preventDefault();
     const formErrors = validateForm();

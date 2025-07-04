@@ -2,7 +2,6 @@ import React from 'react';
 
 const ClienteForm = ({ formData, setFormData, errors }) => {
   
-  // A lógica de "handleChange" vive aqui, pois está diretamente ligada aos campos do formulário
   const handleChange = (e) => {
     const { name, value } = e.target;
     let processedValue = value;
@@ -17,7 +16,6 @@ const ClienteForm = ({ formData, setFormData, errors }) => {
         processedValue = processedValue.slice(0, maxLength);
     }
     
-    // Atualiza o estado no componente pai (que pode ser a página de criação ou edição)
     setFormData(prevState => ({ ...prevState, [name]: processedValue }));
   };
 
@@ -64,7 +62,8 @@ const ClienteForm = ({ formData, setFormData, errors }) => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label htmlFor="endereco" className="block text-sm font-medium text-gray-700">Endereço</label>
-            <input type="text" name="endereco" id="endereco" value={formData.endereco} onChange={handleChange} required className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-brand-yellow focus:border-brand-yellow" />
+            <input type="text" name="endereco" id="endereco" value={formData.endereco} onChange={handleChange} required className={`mt-1 block w-full px-3 py-2 bg-white border rounded-md shadow-sm focus:outline-none focus:ring-brand-yellow focus:border-brand-yellow ${errors.endereco ? 'border-red-500' : 'border-gray-300'}`} />
+            {errors.endereco && <p className="mt-1 text-sm text-red-600">{errors.endereco}</p>}
           </div>
           <div>
             <label htmlFor="data_nascimento" className="block text-sm font-medium text-gray-700">Data de Nascimento / Fundação</label>

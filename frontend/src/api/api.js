@@ -1,22 +1,35 @@
 import axios from 'axios';
+// O toast não é mais necessário aqui
+// import toast from 'react-hot-toast'; 
 
-// Cria uma "instância" do axios com configurações padrão
 const api = axios.create({
-  baseURL: 'http://localhost:3000', // O endereço base do nosso backend
+  baseURL: 'http://localhost:3000',
 });
 
-// Isto é um "interceptor": uma função que "intercepta" todos os pedidos
-// antes de eles serem enviados. É o nosso "segurança" que anexa o crachá.
 api.interceptors.request.use(async (config) => {
-  // Pega o token do armazenamento local do navegador
   const token = localStorage.getItem('authToken');
   if (token) {
-    // Se o token existir, adiciona-o ao cabeçalho de autorização
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 }, (error) => {
   return Promise.reject(error);
 });
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      localStorage.removeItem('authToken');
+      
+      // AQUI ESTÁ A MUDANÇA
+      // Em vez de mostrar um toast, nós disparamos um evento customizado.
+      // A aplicação principal (App.jsx) estará ouvindo por este evento.
+      window.dispatchEvent(new Event('sessionExpired'));
+    }
+    
+    return Promise.reject(error);
+  }
+);
 
 export default api;

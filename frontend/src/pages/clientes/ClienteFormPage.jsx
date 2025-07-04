@@ -4,7 +4,7 @@ import { FiSave, FiXCircle } from 'react-icons/fi';
 import { cpf as cpfValidator, cnpj as cnpjValidator } from 'cpf-cnpj-validator';
 import api from '../../api/api';
 import toast from 'react-hot-toast';
-import ClienteForm from '../../components/clientes/ClienteForm'; // Importa o formulário reutilizável
+import ClienteForm from '../../components/clientes/ClienteForm';
 
 const ClienteFormPage = () => {
   const navigate = useNavigate();
@@ -17,7 +17,6 @@ const ClienteFormPage = () => {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
 
-  // A validação continua sendo responsabilidade da página
   const validateForm = () => {
     const newErrors = {};
     if (!formData.nome.trim()) newErrors.nome = 'O nome é obrigatório.';
@@ -33,12 +32,14 @@ const ClienteFormPage = () => {
     else if (formData.tipo_pessoa === 'FISICA' && !cpfValidator.isValid(formData.documento)) newErrors.documento = 'CPF inválido.';
     else if (formData.tipo_pessoa === 'JURIDICA' && !cnpjValidator.isValid(formData.documento)) newErrors.documento = 'CNPJ inválido.';
     
+    // AQUI ESTÁ A MUDANÇA
+    if (!formData.endereco.trim()) newErrors.endereco = 'O endereço é obrigatório.';
+
     if (!formData.data_nascimento) newErrors.data_nascimento = 'A data é obrigatória.';
 
     return newErrors;
   };
 
-  // O envio do formulário (handleSubmit) também é responsabilidade da página
   const handleSubmit = async (e) => {
     e.preventDefault();
     const formErrors = validateForm();
