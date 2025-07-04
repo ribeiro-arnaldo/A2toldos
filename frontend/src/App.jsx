@@ -1,20 +1,28 @@
-import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { Toaster } from 'react-hot-toast';
+import React, { useState, useEffect } from "react";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+import { Toaster } from "react-hot-toast";
 
 // Imports das páginas
-import LoginPage from './pages/login/LoginPage';
-import DashboardPage from './pages/dashboard/DashboardPage';
-import ClientesPage from './pages/clientes/ClientesPage';
-import ClienteFormPage from './pages/clientes/ClienteFormPage';
-import ClienteDetailPage from './pages/clientes/ClienteDetailPage';
-import ClienteEditPage from './pages/clientes/ClienteEditPage';
-import OrcamentosPage from './pages/orcamentos/OrcamentosPage';
-import OrcamentoDetailPage from './pages/orcamentos/OrcamentoDetailPage';
+import LoginPage from "./pages/login/LoginPage";
+import DashboardPage from "./pages/dashboard/DashboardPage";
+import ClientesPage from "./pages/clientes/ClientesPage";
+import ClienteFormPage from "./pages/clientes/ClienteFormPage";
+import ClienteDetailPage from "./pages/clientes/ClienteDetailPage";
+import ClienteEditPage from "./pages/clientes/ClienteEditPage";
+import OrcamentosPage from "./pages/orcamentos/OrcamentosPage";
+import OrcamentoFormPage from "./pages/orcamentos/OrcamentoFormPage.jsx";
+import OrcamentoDetailPage from "./pages/orcamentos/OrcamentoDetailPage";
+// AQUI ESTÁ A CORREÇÃO
+import OrcamentoEditPage from "./pages/orcamentos/OrcamentoEditPage.jsx";
 
 // Imports dos componentes
-import MainLayout from './components/layout/MainLayout';
-import AlertModal from './components/common/AlertModal'; // Importa nosso novo modal
+import MainLayout from "./components/layout/MainLayout";
+import AlertModal from "./components/common/AlertModal";
 
 const PrivateWrapper = ({ isAuthenticated, onLogout }) => {
   if (!isAuthenticated) {
@@ -26,47 +34,59 @@ const PrivateWrapper = ({ isAuthenticated, onLogout }) => {
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
-  
-  const [clientes, setClientes] = useState([]);
-  const [filtrosClientes, setFiltrosClientes] = useState({ tipo: 'nome', termo: '' });
-  const [buscaRealizada, setBuscaRealizada] = useState(false);
 
-  // --- INÍCIO DAS NOVAS ADIÇÕES ---
-  // Estado para controlar o modal de alerta
-  const [alertModal, setAlertModal] = useState({
-    isOpen: false,
-    title: '',
-    message: ''
+  // Estado para o módulo de Clientes
+  const [clientes, setClientes] = useState([]);
+  const [filtrosClientes, setFiltrosClientes] = useState({
+    tipo: "nome",
+    termo: "",
+  });
+  const [buscaRealizadaClientes, setBuscaRealizadaClientes] = useState(false);
+
+  // Estado para o módulo de Orçamentos
+  const [orcamentos, setOrcamentos] = useState([]);
+  const [filtrosOrcamentos, setFiltrosOrcamentos] = useState({
+    numero_orcamento: "",
+    nome_cliente: "",
+    status: "TODOS",
+  });
+  const [buscaRealizadaOrcamentos, setBuscaRealizadaOrcamentos] =
+    useState(false);
+  const [dadosPaginacaoOrcamentos, setDadosPaginacaoOrcamentos] = useState({
+    pagina: 1,
+    limite: 10,
+    total: 0,
   });
 
-  // Efeito que "ouve" o sinal de sessão expirada
+  const [alertModal, setAlertModal] = useState({
+    isOpen: false,
+    title: "",
+    message: "",
+  });
+
   useEffect(() => {
     const handleSessionExpired = () => {
       setIsAuthenticated(false);
       setAlertModal({
         isOpen: true,
-        title: 'Sessão Expirada',
-        message: 'Sua sessão terminou. Por favor, faça o login novamente para continuar.'
+        title: "Sessão Expirada",
+        message:
+          "Sua sessão terminou. Por favor, faça o login novamente para continuar.",
       });
     };
-
-    window.addEventListener('sessionExpired', handleSessionExpired);
-
-    // Limpa o "ouvinte" quando o componente é desmontado para evitar vazamentos de memória
+    window.addEventListener("sessionExpired", handleSessionExpired);
     return () => {
-      window.removeEventListener('sessionExpired', handleSessionExpired);
+      window.removeEventListener("sessionExpired", handleSessionExpired);
     };
   }, []);
 
-  // Função para fechar o modal e redirecionar
   const handleAlertModalClose = () => {
-    setAlertModal({ isOpen: false, title: '', message: '' });
-    window.location.href = '/login';
+    setAlertModal({ isOpen: false, title: "", message: "" });
+    window.location.href = "/login";
   };
-  // --- FIM DAS NOVAS ADIÇÕES ---
 
   useEffect(() => {
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem("authToken");
     if (token) {
       setIsAuthenticated(true);
     }
@@ -74,12 +94,12 @@ function App() {
   }, []);
 
   const handleLoginSuccess = (token) => {
-    localStorage.setItem('authToken', token);
+    localStorage.setItem("authToken", token);
     setIsAuthenticated(true);
   };
-  
+
   const handleLogout = () => {
-    localStorage.removeItem('authToken');
+    localStorage.removeItem("authToken");
     setIsAuthenticated(false);
   };
 
@@ -89,55 +109,80 @@ function App() {
 
   return (
     <Router>
-      <Toaster 
+      <Toaster
         position="top-right"
         toastOptions={{
           duration: 4000,
-          success: { style: { background: '#06397d', color: 'white' } },
-          error: { style: { background: '#dc3545', color: 'white' } },
+          success: { style: { background: "#06397d", color: "white" } },
+          error: { style: { background: "#dc3545", color: "white" } },
         }}
       />
-      
-      {/* Renderiza o modal de alerta aqui */}
       <AlertModal
         isOpen={alertModal.isOpen}
         title={alertModal.title}
         message={alertModal.message}
         onClose={handleAlertModalClose}
       />
-
       <Routes>
-        <Route 
-          path="/login" 
-          element={!isAuthenticated ? <LoginPage onLoginSuccess={handleLoginSuccess} /> : <Navigate to="/" />} 
+        <Route
+          path="/login"
+          element={
+            !isAuthenticated ? (
+              <LoginPage onLoginSuccess={handleLoginSuccess} />
+            ) : (
+              <Navigate to="/" />
+            )
+          }
         />
-        
-        <Route element={<PrivateWrapper isAuthenticated={isAuthenticated} onLogout={handleLogout} />}>
+        <Route
+          element={
+            <PrivateWrapper
+              isAuthenticated={isAuthenticated}
+              onLogout={handleLogout}
+            />
+          }
+        >
           <Route path="/" element={<DashboardPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
-          
-          <Route 
-            path="/clientes" 
+          <Route
+            path="/clientes"
             element={
-              <ClientesPage 
+              <ClientesPage
                 clientes={clientes}
                 setClientes={setClientes}
                 filtros={filtrosClientes}
                 setFiltros={setFiltrosClientes}
-                buscaRealizada={buscaRealizada}
-                setBuscaRealizada={setBuscaRealizada}
+                buscaRealizada={buscaRealizadaClientes}
+                setBuscaRealizada={setBuscaRealizadaClientes}
               />
-            } 
+            }
           />
           <Route path="/clientes/novo" element={<ClienteFormPage />} />
           <Route path="/clientes/:id/editar" element={<ClienteEditPage />} />
           <Route path="/clientes/:id" element={<ClienteDetailPage />} />
 
-          <Route path="/orcamentos" element={<OrcamentosPage />} />
+          <Route
+            path="/orcamentos"
+            element={
+              <OrcamentosPage
+                orcamentos={orcamentos}
+                setOrcamentos={setOrcamentos}
+                filtros={filtrosOrcamentos}
+                setFiltros={setFiltrosOrcamentos}
+                buscaRealizada={buscaRealizadaOrcamentos}
+                setBuscaRealizada={setBuscaRealizadaOrcamentos}
+                dadosPaginacao={dadosPaginacaoOrcamentos}
+                setDadosPaginacao={setDadosPaginacaoOrcamentos}
+              />
+            }
+          />
+          <Route path="/orcamentos/novo" element={<OrcamentoFormPage />} />
+          <Route
+            path="/orcamentos/:id/editar"
+            element={<OrcamentoEditPage />}
+          />
           <Route path="/orcamentos/:id" element={<OrcamentoDetailPage />} />
         </Route>
-        
-        <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Router>
   );

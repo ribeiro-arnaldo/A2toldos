@@ -1,60 +1,76 @@
 const db = require('../database/db');
 
+// --- Helpers para "promisificar" o db ---
+const dbRun = (sql, params = []) => {
+    return new Promise((resolve, reject) => {
+        db.run(sql, params, function (err) {
+            if (err) reject(err);
+            else resolve(this);
+        });
+    });
+};
+const dbGet = (sql, params = []) => {
+    return new Promise((resolve, reject) => {
+        db.get(sql, params, (err, row) => {
+            if (err) reject(err);
+            else resolve(row);
+        });
+    });
+};
+const dbAll = (sql, params = []) => {
+    return new Promise((resolve, reject) => {
+        db.all(sql, params, (err, rows) => {
+            if (err) reject(err);
+            else resolve(rows);
+        });
+    });
+};
+
 class OrcamentoService {
 
   async create(orcamentoData) {
     const { cliente_id, descricao, itens } = orcamentoData;
 
-    let valor_total_calculado = 0;
-    for (const item of itens) {
-      item.valor_item = item.largura * item.comprimento * item.preco_m2;
-      valor_total_calculado += item.valor_item;
-    }
+    const valor_total_calculado = itens.reduce((acc, item) => {
+      return acc + (item.largura * item.comprimento * item.preco_m2);
+    }, 0);
 
     const data_orcamento = new Date().toISOString().split('T')[0];
     const ano_atual = new Date().getFullYear();
 
-    return new Promise((resolve, reject) => {
-      db.serialize(() => {
-        db.run('BEGIN TRANSACTION;');
-        const countQuery = `SELECT COUNT(*) as count FROM orcamentos WHERE strftime('%Y', data_orcamento) = ?`;
-        db.get(countQuery, [String(ano_atual)], (err, row) => {
-          if (err) {
-            db.run('ROLLBACK;');
-            return reject(new Error('Erro ao gerar número do orçamento.'));
-          }
-          
-          const proximo_numero = row.count + 1;
-          const numero_formatado = String(proximo_numero).padStart(4, '0');
-          const numero_orcamento = `${numero_formatado}/${ano_atual}`;
+    await dbRun('BEGIN TRANSACTION;');
 
-          const orcamentoQuery = `INSERT INTO orcamentos (cliente_id, descricao, valor_total, data_orcamento, numero_orcamento) VALUES (?, ?, ?, ?, ?)`;
-          db.run(orcamentoQuery, [cliente_id, descricao, valor_total_calculado, data_orcamento, numero_orcamento], function(err) {
-            if (err) {
-              db.run('ROLLBACK;');
-              return reject(new Error('Erro ao salvar o orçamento.'));
-            }
+    try {
+      const maxNumQuery = `SELECT MAX(numero_orcamento) as max_num FROM orcamentos WHERE numero_orcamento LIKE ?`;
+      const resultMax = await dbGet(maxNumQuery, [`%/${ano_atual}`]);
+      
+      let proximo_numero = 1;
+      if (resultMax && resultMax.max_num) {
+        const ultimo_numero = parseInt(resultMax.max_num.split('/')[0], 10);
+        proximo_numero = ultimo_numero + 1;
+      }
+      
+      const numero_formatado = String(proximo_numero).padStart(4, '0');
+      const numero_orcamento = `${numero_formatado}/${ano_atual}`;
 
-            const orcamento_id = this.lastID;
-            const itemQuery = `INSERT INTO itens_orcamento (orcamento_id, descricao_item, largura, comprimento, preco_m2, valor_item) VALUES (?, ?, ?, ?, ?, ?)`;
-            let itemsProcessed = 0;
-            itens.forEach(item => {
-              db.run(itemQuery, [orcamento_id, item.descricao_item, item.largura, item.comprimento, item.preco_m2, item.valor_item], (itemErr) => {
-                if (itemErr) {
-                  db.run('ROLLBACK;');
-                  return reject(new Error('Erro ao salvar um item do orçamento.'));
-                }
-                itemsProcessed++;
-                if (itemsProcessed === itens.length) {
-                  db.run('COMMIT;');
-                  resolve({ id: orcamento_id, numero_orcamento, valor_total: valor_total_calculado });
-                }
-              });
-            });
-          });
-        });
-      });
-    });
+      const orcamentoQuery = `INSERT INTO orcamentos (cliente_id, descricao, valor_total, data_orcamento, numero_orcamento) VALUES (?, ?, ?, ?, ?)`;
+      const result = await dbRun(orcamentoQuery, [cliente_id, descricao, valor_total_calculado, data_orcamento, numero_orcamento]);
+      const orcamento_id = result.lastID;
+
+      const itemQuery = `INSERT INTO itens_orcamento (orcamento_id, descricao_item, largura, comprimento, preco_m2, valor_item) VALUES (?, ?, ?, ?, ?, ?)`;
+      for (const item of itens) {
+        const valor_item = item.largura * item.comprimento * item.preco_m2;
+        await dbRun(itemQuery, [orcamento_id, item.descricao_item, item.largura, item.comprimento, item.preco_m2, valor_item]);
+      }
+
+      await dbRun('COMMIT;');
+      
+      return { id: orcamento_id, numero_orcamento, valor_total: valor_total_calculado };
+
+    } catch (error) {
+      await dbRun('ROLLBACK;');
+      throw new Error(`Erro ao salvar orçamento: ${error.message}`);
+    }
   }
 
   async listAll(filtros) {
@@ -70,100 +86,86 @@ class OrcamentoService {
       query += ' AND o.cliente_id = ?';
       params.push(filtros.cliente_id);
     }
+    if (filtros && filtros.numero_orcamento) {
+      query += ' AND o.numero_orcamento LIKE ?';
+      params.push(`%${filtros.numero_orcamento}%`);
+    }
+    if (filtros && filtros.nome_cliente) {
+      query += ' AND c.nome LIKE ?';
+      params.push(`%${filtros.nome_cliente}%`);
+    }
+    if (filtros && filtros.status && filtros.status !== 'TODOS') {
+      query += ' AND o.status = ?';
+      params.push(filtros.status);
+    }
     
-    query += ' ORDER BY o.data_orcamento DESC';
+    const countQuery = query.replace(/SELECT o\.id, o\.numero_orcamento, o\.descricao, o\.valor_total, o\.data_orcamento, o\.status, c\.nome as nome_cliente/, 'SELECT COUNT(o.id) as total');
+    
+    const countResult = await dbGet(countQuery, params);
+    const total = countResult ? countResult.total : 0;
 
-    return new Promise((resolve, reject) => {
-      db.all(query, params, (err, rows) => {
-        if (err) reject(new Error(`Erro ao buscar orçamentos: ${err.message}`));
-        
-        resolve({
-          orcamentos: rows,
-          total: rows.length, // Simples contagem por enquanto
-        });
-      });
-    });
+    const pagina = parseInt(filtros.pagina) || 1;
+    const limite = parseInt(filtros.limite) || 10;
+    const offset = (pagina - 1) * limite;
+
+    query += ' ORDER BY o.data_orcamento DESC, o.id DESC LIMIT ? OFFSET ?';
+    params.push(limite, offset);
+
+    const orcamentos = await dbAll(query, params);
+    
+    return { orcamentos, total, pagina, limite };
   }
 
   async findById(id) {
     const orcamentoQuery = `
       SELECT
         o.id, o.numero_orcamento, o.descricao, o.valor_total, o.data_orcamento,
-        o.status, o.cliente_id,
-        c.nome as nome_cliente,
-        c.email as email_cliente,
+        o.status, o.cliente_id, c.nome as nome_cliente, c.email as email_cliente,
         c.telefone as telefone_cliente
       FROM orcamentos o
       JOIN clientes c ON o.cliente_id = c.id
       WHERE o.id = ?
     `;
-    
-    const orcamento = await new Promise((resolve, reject) => {
-      db.get(orcamentoQuery, [id], (err, row) => {
-        if (err) reject(new Error('Erro ao buscar o orçamento.'));
-        resolve(row);
-      });
-    });
-
+    const orcamento = await dbGet(orcamentoQuery, [id]);
     if (!orcamento) throw new Error('Orçamento não encontrado.');
 
     const itensQuery = 'SELECT * FROM itens_orcamento WHERE orcamento_id = ?';
-    const itens = await new Promise((resolve, reject) => {
-      db.all(itensQuery, [id], (err, rows) => {
-        if (err) reject(new Error('Erro ao buscar os itens do orçamento.'));
-        resolve(rows);
-      });
-    });
+    const itens = await dbAll(itensQuery, [id]);
 
     return { ...orcamento, itens };
-  } // <--- A CHAVE EM FALTA ESTAVA AQUI
-
+  } 
+  
   async update(id, orcamentoData) {
     const { cliente_id, descricao, itens } = orcamentoData;
 
-    let valor_total_calculado = 0;
-    for (const item of itens) {
-      item.valor_item = item.largura * item.comprimento * item.preco_m2;
-      valor_total_calculado += item.valor_item;
-    }
+    const valor_total_calculado = itens.reduce((acc, item) => {
+        return acc + (item.largura * item.comprimento * item.preco_m2);
+    }, 0);
 
-    return new Promise((resolve, reject) => {
-      db.serialize(() => {
-        db.run('BEGIN TRANSACTION;');
-        db.run('DELETE FROM itens_orcamento WHERE orcamento_id = ?', [id], (err) => {
-          if (err) {
-            db.run('ROLLBACK;');
-            return reject(new Error('Erro ao limpar itens antigos do orçamento.'));
-          }
-          const updateQuery = `UPDATE orcamentos SET cliente_id = ?, descricao = ?, valor_total = ? WHERE id = ?`;
-          db.run(updateQuery, [cliente_id, descricao, valor_total_calculado, id], function(err) {
-            if (err) {
-              db.run('ROLLBACK;');
-              return reject(new Error('Erro ao atualizar o orçamento.'));
-            }
-            if (this.changes === 0) {
-              db.run('ROLLBACK;');
-              return reject(new Error('Orçamento não encontrado para atualização.'));
-            }
-            const itemQuery = `INSERT INTO itens_orcamento (orcamento_id, descricao_item, largura, comprimento, preco_m2, valor_item) VALUES (?, ?, ?, ?, ?, ?)`;
-            let itemsProcessed = 0;
-            itens.forEach(item => {
-              db.run(itemQuery, [id, item.descricao_item, item.largura, item.comprimento, item.preco_m2, item.valor_item], (itemErr) => {
-                if (itemErr) {
-                  db.run('ROLLBACK;');
-                  return reject(new Error('Erro ao salvar novos itens do orçamento.'));
-                }
-                itemsProcessed++;
-                if (itemsProcessed === itens.length) {
-                  db.run('COMMIT;');
-                  resolve({ id: parseInt(id), valor_total: valor_total_calculado });
-                }
-              });
-            });
-          });
-        });
-      });
-    });
+    await dbRun('BEGIN TRANSACTION;');
+    try {
+        await dbRun('DELETE FROM itens_orcamento WHERE orcamento_id = ?', [id]);
+        
+        const updateQuery = `UPDATE orcamentos SET cliente_id = ?, descricao = ?, valor_total = ? WHERE id = ?`;
+        const result = await dbRun(updateQuery, [cliente_id, descricao, valor_total_calculado, id]);
+
+        if (result.changes === 0) {
+            throw new Error('Orçamento não encontrado para atualização.');
+        }
+
+        const itemQuery = `INSERT INTO itens_orcamento (orcamento_id, descricao_item, largura, comprimento, preco_m2, valor_item) VALUES (?, ?, ?, ?, ?, ?)`;
+        for (const item of itens) {
+            const valor_item = item.largura * item.comprimento * item.preco_m2;
+            await dbRun(itemQuery, [id, item.descricao_item, item.largura, item.comprimento, item.preco_m2, valor_item]);
+        }
+        
+        await dbRun('COMMIT;');
+        return { id: parseInt(id), valor_total: valor_total_calculado };
+
+    } catch(error) {
+        await dbRun('ROLLBACK;');
+        throw new Error(`Erro ao atualizar orçamento: ${error.message}`);
+    }
   }
 
   async updateStatus(id, status) {
@@ -172,24 +174,20 @@ class OrcamentoService {
       throw new Error('Status inválido ou não fornecido.');
     }
     const query = `UPDATE orcamentos SET status = ? WHERE id = ?`;
-    return new Promise((resolve, reject) => {
-      db.run(query, [status.toUpperCase(), id], function(err) {
-        if (err) reject(new Error('Erro ao atualizar o status.'));
-        if (this.changes === 0) reject(new Error('Orçamento não encontrado.'));
-        resolve({ mensagem: `Status do orçamento atualizado para ${status.toUpperCase()} com sucesso!` });
-      });
-    });
+    const result = await dbRun(query, [status.toUpperCase(), id]);
+    if (result.changes === 0) {
+        throw new Error('Orçamento não encontrado.');
+    }
+    return { mensagem: `Status do orçamento atualizado para ${status.toUpperCase()} com sucesso!` };
   }
 
   async delete(id) {
     const query = 'DELETE FROM orcamentos WHERE id = ?';
-    return new Promise((resolve, reject) => {
-      db.run(query, [id], function(err) {
-        if (err) reject(new Error('Erro ao deletar orçamento.'));
-        if (this.changes === 0) reject(new Error('Orçamento não encontrado para exclusão.'));
-        resolve({ mensagem: 'Orçamento excluído com sucesso!' });
-      });
-    });
+    const result = await dbRun(query, [id]);
+    if (result.changes === 0) {
+        throw new Error('Orçamento não encontrado para exclusão.');
+    }
+    return { mensagem: 'Orçamento excluído com sucesso!' };
   }
 }
 
