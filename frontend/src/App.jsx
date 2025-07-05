@@ -6,34 +6,38 @@ import {
   Navigate,
 } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
+import { jwtDecode } from "jwt-decode";
 
-// Imports das páginas
+// Imports de todas as páginas
 import LoginPage from "./pages/login/LoginPage";
 import DashboardPage from "./pages/dashboard/DashboardPage";
 import ClientesPage from "./pages/clientes/ClientesPage";
 import ClienteFormPage from "./pages/clientes/ClienteFormPage";
 import ClienteDetailPage from "./pages/clientes/ClienteDetailPage";
-import ClienteEditPage from "./pages/clientes/ClienteEditPage";
+import ClienteEditPage from "./pages/clientes/ClienteEditPage.jsx";
 import OrcamentosPage from "./pages/orcamentos/OrcamentosPage";
 import OrcamentoFormPage from "./pages/orcamentos/OrcamentoFormPage.jsx";
 import OrcamentoDetailPage from "./pages/orcamentos/OrcamentoDetailPage";
-// AQUI ESTÁ A CORREÇÃO
 import OrcamentoEditPage from "./pages/orcamentos/OrcamentoEditPage.jsx";
+import UsuariosPage from "./pages/usuarios/UsuariosPage";
 
-// Imports dos componentes
+// Imports dos componentes globais
 import MainLayout from "./components/layout/MainLayout";
 import AlertModal from "./components/common/AlertModal";
 
-const PrivateWrapper = ({ isAuthenticated, onLogout }) => {
+// Componente que protege as rotas privadas
+const PrivateWrapper = ({ isAuthenticated, onLogout, usuarioLogado }) => {
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
-  return <MainLayout onLogout={onLogout} />;
+  return <MainLayout onLogout={onLogout} usuarioLogado={usuarioLogado} />;
 };
 
 function App() {
+  // Estado de Autenticação e Usuário
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [usuarioLogado, setUsuarioLogado] = useState(null);
 
   // Estado para o módulo de Clientes
   const [clientes, setClientes] = useState([]);
@@ -58,15 +62,18 @@ function App() {
     total: 0,
   });
 
+  // Estado para o Modal de Alerta Global
   const [alertModal, setAlertModal] = useState({
     isOpen: false,
     title: "",
     message: "",
   });
 
+  // Efeito para "ouvir" o evento de sessão expirada
   useEffect(() => {
     const handleSessionExpired = () => {
       setIsAuthenticated(false);
+      setUsuarioLogado(null);
       setAlertModal({
         isOpen: true,
         title: "Sessão Expirada",
@@ -80,27 +87,43 @@ function App() {
     };
   }, []);
 
+  // Efeito para verificar o token ao carregar a aplicação
+  useEffect(() => {
+    const token = localStorage.getItem("authToken");
+    if (token) {
+      try {
+        const decoded = jwtDecode(token);
+        if (decoded.exp * 1000 > Date.now()) {
+          setIsAuthenticated(true);
+          setUsuarioLogado(decoded);
+        } else {
+          localStorage.removeItem("authToken");
+        }
+      } catch (e) {
+        console.error("Token inválido:", e);
+        localStorage.removeItem("authToken");
+      }
+    }
+    setLoading(false);
+  }, []);
+
   const handleAlertModalClose = () => {
     setAlertModal({ isOpen: false, title: "", message: "" });
     window.location.href = "/login";
   };
 
-  useEffect(() => {
-    const token = localStorage.getItem("authToken");
-    if (token) {
-      setIsAuthenticated(true);
-    }
-    setLoading(false);
-  }, []);
-
   const handleLoginSuccess = (token) => {
     localStorage.setItem("authToken", token);
+    const decoded = jwtDecode(token);
     setIsAuthenticated(true);
+    setUsuarioLogado(decoded);
   };
 
   const handleLogout = () => {
     localStorage.removeItem("authToken");
     setIsAuthenticated(false);
+    setUsuarioLogado(null);
+    window.location.href = "/login";
   };
 
   if (loading) {
@@ -139,6 +162,7 @@ function App() {
             <PrivateWrapper
               isAuthenticated={isAuthenticated}
               onLogout={handleLogout}
+              usuarioLogado={usuarioLogado}
             />
           }
         >
@@ -182,6 +206,8 @@ function App() {
             element={<OrcamentoEditPage />}
           />
           <Route path="/orcamentos/:id" element={<OrcamentoDetailPage />} />
+
+          <Route path="/usuarios" element={<UsuariosPage />} />
         </Route>
       </Routes>
     </Router>

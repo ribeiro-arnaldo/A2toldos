@@ -44,12 +44,13 @@ db.serialize(() => {
     )
   `);
 
-  db.run(`
+    db.run(`
     CREATE TABLE IF NOT EXISTS usuarios (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       nome TEXT NOT NULL,
       email TEXT NOT NULL UNIQUE,
-      senha_hash TEXT NOT NULL
+      senha_hash TEXT NOT NULL,
+      perfil TEXT NOT NULL DEFAULT 'VENDEDOR' -- Nova coluna adicionada
     )
   `);
 });

@@ -14,6 +14,8 @@ app.use(morgan('dev'));
 const clientesRoutes = require('./routes/clientes.js');
 const orcamentosRoutes = require('./routes/orcamentos.js');
 const authRoutes = require('./routes/auth.js');
+const usuarioRoutes = require('./routes/usuario.js');
+app.use('/usuarios', usuarioRoutes);
 
 app.use('/clientes', clientesRoutes);
 app.use('/orcamentos', orcamentosRoutes);

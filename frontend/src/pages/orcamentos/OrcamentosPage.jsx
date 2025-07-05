@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   FiFileText,
@@ -32,36 +32,46 @@ const OrcamentosPage = ({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [orcamentoParaApagar, setOrcamentoParaApagar] = useState(null);
 
-  const handleSearch = async (pagina = 1) => {
-    setLoading(true);
-    if (!buscaRealizada) setBuscaRealizada(true);
+  const handleSearch = useCallback(
+    async (pagina = 1) => {
+      setLoading(true);
+      if (!buscaRealizada) setBuscaRealizada(true);
 
-    const params = { ...filtros, pagina, limite: dadosPaginacao.limite };
-    if (!params.nome_cliente) delete params.nome_cliente;
-    if (!params.numero_orcamento) delete params.numero_orcamento;
+      const params = { ...filtros, pagina, limite: dadosPaginacao.limite };
+      if (!params.nome_cliente) delete params.nome_cliente;
+      if (!params.numero_orcamento) delete params.numero_orcamento;
 
-    try {
-      const response = await api.get("/orcamentos", { params });
-      setOrcamentos(response.data.orcamentos);
-      setDadosPaginacao({
-        pagina: response.data.pagina,
-        limite: response.data.limite,
-        total: response.data.total,
-      });
-    } catch (error) {
-      toast.error("Falha ao buscar orçamentos.");
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
+      try {
+        const response = await api.get("/orcamentos", { params });
+        setOrcamentos(response.data.orcamentos);
+        setDadosPaginacao({
+          pagina: response.data.pagina,
+          limite: response.data.limite,
+          total: response.data.total,
+        });
+      } catch (error) {
+        toast.error("Falha ao buscar orçamentos.");
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [
+      filtros,
+      dadosPaginacao.limite,
+      buscaRealizada,
+      setOrcamentos,
+      setDadosPaginacao,
+      setBuscaRealizada,
+    ]
+  );
 
   useEffect(() => {
     if (location.state?.refresh) {
       handleSearch(1);
       navigate(location.pathname, { replace: true });
     }
-  }, [location]);
+  }, [location, navigate, handleSearch]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;

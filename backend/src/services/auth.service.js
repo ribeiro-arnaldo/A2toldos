@@ -6,12 +6,11 @@ class AuthService {
 
   // Lógica para registrar um novo usuário
   async register(userData) {
-    const { nome, email, senha } = userData;
-    if (!nome || !email || !senha) {
-      throw new Error('Nome, e-mail e senha são obrigatórios.');
+    const { nome, email, senha, perfil } = userData; 
+    if (!nome || !email || !senha || !perfil) {
+      throw new Error('Nome, e-mail, senha e perfil são obrigatórios.');
     }
 
-    // Verifica se o e-mail já existe
     const checkEmailQuery = 'SELECT id FROM usuarios WHERE email = ?';
     const existingUser = await new Promise((resolve, reject) => {
       db.get(checkEmailQuery, [email], (err, row) => {
@@ -23,34 +22,29 @@ class AuthService {
       throw new Error('Este e-mail já está cadastrado.');
     }
 
-    // Criptografa a senha antes de salvar
     const salt = await bcrypt.genSalt(10);
     const senha_hash = await bcrypt.hash(senha, salt);
 
-    // Salva o novo usuário no banco
-    const insertQuery = 'INSERT INTO usuarios (nome, email, senha_hash) VALUES (?, ?, ?)';
+    // Salva o novo usuário no banco com o seu perfil
+    const insertQuery = 'INSERT INTO usuarios (nome, email, senha_hash, perfil) VALUES (?, ?, ?, ?)';
     return new Promise((resolve, reject) => {
-      db.run(insertQuery, [nome, email, senha_hash], function(err) {
-        // --- MUDANÇA IMPORTANTE AQUI ---
+      db.run(insertQuery, [nome, email, senha_hash, perfil], function(err) {
         if (err) {
-          // Agora, em vez de uma mensagem genérica, nós rejeitamos com o erro real do banco.
           reject(new Error(`Erro ao registrar usuário: ${err.message}`));
         } else {
-          resolve({ id: this.lastID, nome, email });
+          resolve({ id: this.lastID, nome, email, perfil });
         }
-        // --- FIM DA MUDANÇA ---
       });
     });
   }
 
-  // Lógica para fazer login
+  // Lógica para fazer login, incluindo o perfil no token
   async login(credentials) {
     const { email, senha } = credentials;
     if (!email || !senha) {
       throw new Error('E-mail e senha são obrigatórios.');
     }
 
-    // Busca o usuário pelo e-mail
     const query = 'SELECT * FROM usuarios WHERE email = ?';
     const user = await new Promise((resolve, reject) => {
       db.get(query, [email], (err, row) => {
@@ -59,23 +53,22 @@ class AuthService {
       });
     });
     if (!user) {
-      throw new Error('Credenciais inválidas.');
+      throw new Error('E-mail ou senha incorretos. \nPor favor, tente novamente.');
     }
 
-    // Compara a senha enviada com a senha criptografada no banco
     const isMatch = await bcrypt.compare(senha, user.senha_hash);
     if (!isMatch) {
-      throw new Error('Credenciais inválidas.');
+      throw new Error('E-mail ou senha incorretos. \nPor favor, tente novamente.');
     }
 
-    // Se as senhas batem, gera o "crachá digital" (JWT)
+    // (token JWT)
     const payload = {
       id: user.id,
-      nome: user.nome
-    };
+      nome: user.nome,
+      perfil: user.perfil     };
     
     const token = jwt.sign(payload, process.env.JWT_SECRET, {
-      expiresIn: '4h'
+      expiresIn: '4h' 
     });
 
     return { token };
