@@ -1,12 +1,6 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
-import {
-  FiHome,
-  FiUsers,
-  FiFileText,
-  FiLogOut,
-  FiSettings,
-} from "react-icons/fi";
+import { FiHome, FiUsers, FiFileText, FiLogOut, FiSettings } from "react-icons/fi";
 import logoA2Toldos from "../../assets/LogoA2Toldos.png";
 
 const Sidebar = ({ usuarioLogado, onLogout }) => {

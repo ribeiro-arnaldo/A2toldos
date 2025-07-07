@@ -32,10 +32,11 @@ const ClienteFormPage = () => {
     else if (formData.tipo_pessoa === 'FISICA' && !cpfValidator.isValid(formData.documento)) newErrors.documento = 'CPF inválido.';
     else if (formData.tipo_pessoa === 'JURIDICA' && !cnpjValidator.isValid(formData.documento)) newErrors.documento = 'CNPJ inválido.';
     
-    // AQUI ESTÁ A MUDANÇA
     if (!formData.endereco.trim()) newErrors.endereco = 'O endereço é obrigatório.';
-
     if (!formData.data_nascimento) newErrors.data_nascimento = 'A data é obrigatória.';
+    else if (new Date(formData.data_nascimento) > new Date()) {
+      newErrors.data_nascimento = 'A data não pode ser no futuro.';
+    }
 
     return newErrors;
   };

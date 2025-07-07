@@ -6,6 +6,7 @@ class ClienteService {
   // POST /clientes
   async create(dadosCliente) {
     const { nome, email, telefone, tipo_pessoa, documento, endereco, data_nascimento } = dadosCliente;
+    const telefoneFormatado = telefone.replace(/\D/g, '');
     const documentoFormatado = tipo_pessoa.toUpperCase() === 'FISICA' 
       ? cpf.strip(documento) 
       : cnpj.strip(documento);
@@ -29,7 +30,7 @@ class ClienteService {
     return novoCliente;
   }
 
-  // GET /clientes (MÉTODO ATUALIZADO PARA INCLUIR FILTRO DE TELEFONE)
+  // GET /clientes 
   async listAll(filtros) {
     let query = 'SELECT * FROM clientes WHERE 1=1';
     const params = [];
@@ -39,13 +40,12 @@ class ClienteService {
       params.push(`%${filtros.nome}%`);
     }
     if (filtros.documento) {
-      query += ' AND documento = ?';
-      params.push(filtros.documento);
-    }
-    // Lógica para buscar por telefone
+      query += ' AND documento = ?';      
+      params.push(filtros.documento.replace(/\D/g, ''));
+    }    
     if (filtros.telefone) {
-      query += ' AND telefone LIKE ?';
-      params.push(`%${filtros.telefone}%`);
+      query += ' AND telefone = ?'; 
+      params.push(filtros.telefone.replace(/\D/g, ''));
     }
     
     const countQuery = query.replace('SELECT *', 'SELECT COUNT(*) as total');
@@ -97,6 +97,7 @@ class ClienteService {
   // PUT /clientes/:id
   async update(id, dadosCliente) {
     const { nome, email, telefone, tipo_pessoa, documento, endereco, data_nascimento } = dadosCliente;
+    const telefoneFormatado = telefone.replace(/\D/g, '');
     let documentoFormatado = tipo_pessoa.toUpperCase() === 'FISICA' ? cpf.strip(documento) : cnpj.strip(documento);
     const checkDocumentQuery = 'SELECT id FROM clientes WHERE documento = ? AND id != ?';
     const clienteExistente = await new Promise((resolve, reject) => {

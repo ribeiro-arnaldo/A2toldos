@@ -8,8 +8,7 @@ const Header = () => {
           {/* Futuramente podemos ter uma barra de busca aqui */}
         </div>
         <div>
-          <span className="font-semibold">Arnaldo Ribeiro</span>
-          {/* TODO: Lógica para mostrar o nome do utilizador logado */}
+          <span className="font-semibold">Arnaldo Ribeiro</span>          
         </div>
       </div>
     </header>

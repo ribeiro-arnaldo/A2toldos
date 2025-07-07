@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   FiFileText,
@@ -32,46 +32,36 @@ const OrcamentosPage = ({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [orcamentoParaApagar, setOrcamentoParaApagar] = useState(null);
 
-  const handleSearch = useCallback(
-    async (pagina = 1) => {
-      setLoading(true);
-      if (!buscaRealizada) setBuscaRealizada(true);
+  const handleSearch = async (pagina = 1) => {
+    setLoading(true);
+    if (!buscaRealizada) setBuscaRealizada(true);
 
-      const params = { ...filtros, pagina, limite: dadosPaginacao.limite };
-      if (!params.nome_cliente) delete params.nome_cliente;
-      if (!params.numero_orcamento) delete params.numero_orcamento;
+    const params = { ...filtros, pagina, limite: dadosPaginacao.limite };
+    if (!params.nome_cliente) delete params.nome_cliente;
+    if (!params.numero_orcamento) delete params.numero_orcamento;
 
-      try {
-        const response = await api.get("/orcamentos", { params });
-        setOrcamentos(response.data.orcamentos);
-        setDadosPaginacao({
-          pagina: response.data.pagina,
-          limite: response.data.limite,
-          total: response.data.total,
-        });
-      } catch (error) {
-        toast.error("Falha ao buscar orçamentos.");
-        console.error(error);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [
-      filtros,
-      dadosPaginacao.limite,
-      buscaRealizada,
-      setOrcamentos,
-      setDadosPaginacao,
-      setBuscaRealizada,
-    ]
-  );
+    try {
+      const response = await api.get("/orcamentos", { params });
+      setOrcamentos(response.data.orcamentos);
+      setDadosPaginacao({
+        pagina: response.data.pagina,
+        limite: response.data.limite,
+        total: response.data.total,
+      });
+    } catch (error) {
+      toast.error("Falha ao buscar orçamentos.");
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (location.state?.refresh) {
       handleSearch(1);
       navigate(location.pathname, { replace: true });
     }
-  }, [location, navigate, handleSearch]);
+  }, [location, navigate]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -115,7 +105,7 @@ const OrcamentosPage = ({
     new Intl.NumberFormat("pt-BR", {
       style: "currency",
       currency: "BRL",
-    }).format(value || 0);
+    }).format(value);
 
   return (
     <div>
@@ -135,10 +125,7 @@ const OrcamentosPage = ({
         <form onSubmit={handleFormSubmit}>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label
-                htmlFor="nome_cliente"
-                className="block text-sm font-medium text-gray-700"
-              >
+              <label htmlFor="nome_cliente" className="block text-sm font-medium text-gray-700">
                 Nome do Cliente
               </label>
               <input
@@ -148,14 +135,11 @@ const OrcamentosPage = ({
                 value={filtros.nome_cliente}
                 onChange={handleInputChange}
                 className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-brand-yellow focus:border-brand-yellow"
-                placeholder="Digite o nome..."
+                placeholder="Digite o nome do cliente..."
               />
             </div>
             <div>
-              <label
-                htmlFor="numero_orcamento"
-                className="block text-sm font-medium text-gray-700"
-              >
+              <label htmlFor="numero_orcamento" className="block text-sm font-medium text-gray-700">
                 Nº do Orçamento
               </label>
               <input
@@ -169,10 +153,7 @@ const OrcamentosPage = ({
               />
             </div>
             <div>
-              <label
-                htmlFor="status"
-                className="block text-sm font-medium text-gray-700"
-              >
+              <label htmlFor="status" className="block text-sm font-medium text-gray-700">
                 Status
               </label>
               <select
@@ -193,17 +174,10 @@ const OrcamentosPage = ({
             </div>
           </div>
           <div className="mt-4 flex justify-end space-x-4">
-            <button
-              type="button"
-              onClick={handleClearFilters}
-              className="bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-lg flex items-center hover:bg-gray-300 transition-colors"
-            >
+            <button type="button" onClick={handleClearFilters} className="bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-lg flex items-center hover:bg-gray-300 transition-colors">
               <FiRotateCw className="mr-2" /> Limpar
             </button>
-            <button
-              type="submit"
-              className="bg-brand-yellow text-brand-blue font-bold py-2 px-4 rounded-lg flex items-center justify-center hover:opacity-90 transition-opacity"
-            >
+            <button type="submit" className="bg-brand-yellow text-brand-blue font-bold py-2 px-4 rounded-lg flex items-center justify-center hover:opacity-90 transition-opacity">
               <FiSearch className="mr-2" /> Procurar
             </button>
           </div>

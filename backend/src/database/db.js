@@ -19,13 +19,14 @@ db.serialize(() => {
   `);
 
   db.run(`
-    CREATE TABLE IF NOT EXISTS orcamentos (
+   CREATE TABLE IF NOT EXISTS orcamentos (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       numero_orcamento TEXT NOT NULL UNIQUE,
       cliente_id INTEGER NOT NULL,
       descricao TEXT,
       valor_total REAL NOT NULL,
       data_orcamento TEXT NOT NULL,
+      prazo_entrega TEXT,
       status TEXT NOT NULL DEFAULT 'PENDENTE',
       FOREIGN KEY (cliente_id) REFERENCES clientes (id) ON DELETE CASCADE
     )
@@ -36,6 +37,8 @@ db.serialize(() => {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       orcamento_id INTEGER NOT NULL,
       descricao_item TEXT,
+      cor TEXT,
+      observacoes TEXT, 
       largura REAL NOT NULL,
       comprimento REAL NOT NULL,
       preco_m2 REAL NOT NULL,
