@@ -1,10 +1,5 @@
 import React, { useState, useEffect } from "react";
-import {
-  BrowserRouter as Router,
-  Routes,
-  Route,
-  Navigate,
-} from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import { jwtDecode } from "jwt-decode";
 
@@ -20,6 +15,8 @@ import OrcamentoFormPage from "./pages/orcamentos/OrcamentoFormPage.jsx";
 import OrcamentoDetailPage from "./pages/orcamentos/OrcamentoDetailPage";
 import OrcamentoEditPage from "./pages/orcamentos/OrcamentoEditPage.jsx";
 import UsuariosPage from "./pages/usuarios/UsuariosPage";
+import UsuariosEditPage from "./pages/usuarios/UsuariosEditPage";
+import UsuariosFormPage from "./pages/usuarios/UsuariosFormPage"; 
 
 // Imports dos componentes globais
 import MainLayout from "./components/layout/MainLayout";
@@ -208,6 +205,8 @@ function App() {
           <Route path="/orcamentos/:id" element={<OrcamentoDetailPage />} />
 
           <Route path="/usuarios" element={<UsuariosPage />} />
+          <Route path="/usuarios/novo" element={<UsuariosFormPage />} />
+          <Route path="/usuarios/:id/editar" element={<UsuariosEditPage />} />
         </Route>
       </Routes>
     </Router>

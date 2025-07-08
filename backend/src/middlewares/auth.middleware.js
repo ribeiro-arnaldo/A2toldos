@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 
 const authMiddleware = (req, res, next) => {
-const authHeader = req.headers.authorization;
+  const authHeader = req.headers.authorization;
 
   if (!authHeader) {
     return res.status(401).json({ erro: 'Acesso negado. Nenhum token foi fornecido.' });
@@ -22,10 +22,10 @@ const authHeader = req.headers.authorization;
     if (err) {
        return res.status(401).json({ erro: 'Token inválido ou expirado.' });
     }
-
-    
+        
     req.userId = decoded.id;
     req.userNome = decoded.nome;
+    req.usuarioPerfil = decoded.perfil;
 
     return next();
   });

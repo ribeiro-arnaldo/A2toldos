@@ -11,9 +11,9 @@ const Sidebar = ({ usuarioLogado, onLogout }) => {
 
   return (
     <div className="w-64 h-screen bg-brand-blue text-white flex flex-col shadow-lg">
-      <div className="p-6 flex items-center justify-center border-b border-blue-700">
+      <div className="p-2 flex items-center justify-center border-b border-blue-700">
         <NavLink to="/dashboard">
-          <img src={logoA2Toldos} alt="Logo A2 Toldos" className="w-32" />
+          <img src={logoA2Toldos} alt="Logo A2 Toldos" className="w-full" />
         </NavLink>
       </div>
       <nav className="flex-grow p-4">

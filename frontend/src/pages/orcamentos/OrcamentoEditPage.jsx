@@ -114,36 +114,40 @@ const OrcamentoEditPage = () => {
     }
   };
 
+  if (loading && itens.length === 0) {
+    return <div className="p-6 text-center">A carregar orçamento...</div>;
+  }
+
   return (
     <div className="p-6">
       <h1 className="text-3xl font-bold text-brand-blue mb-6 flex items-center"><FiEdit className="mr-3" />Editar Orçamento</h1>
-      {loading && !itens.length ? (
-        <div className="p-6 text-center">A carregar orçamento...</div>
-      ) : (
-        <form onSubmit={handleSubmit} className="bg-white p-8 rounded-lg shadow-lg" noValidate>
-          <OrcamentoForm
-            formData={{ clienteSelecionado, descricao, prazo_entrega: prazoEntrega, itens }}
-            setFormData={{ setClienteSelecionado, setDescricao, setPrazoEntrega, setItens }}
-            errors={errors}
-          />
-          <div className="flex justify-end mt-6">
-            <div className="w-full md:w-1/3">
-              <label className="block text-sm font-medium text-gray-700">Valor Total do Orçamento</label>
-              <div className="mt-1 p-3 h-[48px] flex items-center bg-gray-200 rounded-md text-xl font-bold text-gray-900">{formatCurrency(valorTotal)}</div>
-            </div>
+      <form onSubmit={handleSubmit} className="bg-white p-8 rounded-lg shadow-lg" noValidate>
+        <OrcamentoForm
+          formData={{ clienteSelecionado, descricao, prazo_entrega: prazoEntrega, itens }}
+          setFormData={{ setClienteSelecionado, setDescricao, setPrazoEntrega, setItens }}
+          errors={errors}
+        />
+        <div className="flex justify-end mt-6">
+          <div className="w-full md:w-1/3">
+            <label className="block text-sm font-medium text-gray-700">Valor Total do Orçamento</label>
+            <div className="mt-1 p-3 h-[48px] flex items-center bg-gray-200 rounded-md text-xl font-bold text-gray-900">{formatCurrency(valorTotal)}</div>
           </div>
-          <div className="pt-8 flex justify-end space-x-4">
-            <button type="button" onClick={() => navigate(`/orcamentos/${id}`)} className="bg-gray-200 text-gray-800 font-bold py-2 px-6 rounded-lg flex items-center hover:bg-gray-300 transition-colors">
-              <FiXCircle className="mr-2" />
-              Cancelar
-            </button>
-            <button type="submit" disabled={loading} className="w-48 bg-brand-blue text-white font-bold py-2 px-6 rounded-lg flex items-center justify-center hover:bg-opacity-90 transition-colors disabled:bg-gray-400">
-              {loading ? (<FiLoader className="animate-spin mr-2" />) : (<FiSave className="mr-2" />)}
-              {loading ? "Salvando..." : "Salvar Alterações"}
-            </button>
-          </div>
-        </form>
-      )}
+        </div>
+        <div className="pt-8 flex justify-end space-x-4">
+          <button type="button" onClick={() => navigate(`/orcamentos/${id}`)} className="bg-gray-200 text-gray-800 font-bold py-2 px-6 rounded-lg flex items-center hover:bg-gray-300 transition-colors">
+            <FiXCircle className="mr-2" />
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-48 bg-brand-blue text-white font-bold py-2 px-6 rounded-lg flex items-center justify-center hover:bg-opacity-90 transition-colors disabled:bg-gray-400"
+          >
+            {loading ? (<FiLoader className="animate-spin mr-2" />) : (<FiSave className="mr-2" />)}
+            {loading ? "Salvando..." : "Salvar Alterações"}
+          </button>
+        </div>
+      </form>
     </div>
   );
 };
