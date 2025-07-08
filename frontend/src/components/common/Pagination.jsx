@@ -1,31 +1,41 @@
 import React from 'react';
 
 const Pagination = ({ pagina, limite, total, onPageChange }) => {
-  const totalPaginas = Math.ceil(total / limite);
-
-  // Se só existe uma página (ou nenhuma), não há necessidade de mostrar os botões.
+  const totalPaginas = (limite > 0 && total > 0) ? Math.ceil(total / limite) : 1;
   if (totalPaginas <= 1) {
     return null;
   }
 
+  const handlePrevious = () => {
+    if (pagina > 1) {
+      onPageChange(pagina - 1);
+    }
+  };
+
+  const handleNext = () => {
+    if (pagina < totalPaginas) {
+      onPageChange(pagina + 1);
+    }
+  };
+
   return (
-    <div className="mt-6 flex justify-center items-center space-x-4 py-4">
-      <button 
-        onClick={() => onPageChange(pagina - 1)} 
+    <div className="flex justify-center items-center mt-6 py-4">
+      <button
+        onClick={handlePrevious}
         disabled={pagina === 1}
-        className="px-4 py-2 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        className="bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-l-lg hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         Anterior
       </button>
       
-      <span className="text-gray-700 font-medium">
+      <div className="bg-white text-gray-800 font-bold py-2 px-6 border-t border-b border-gray-200">
         Página {pagina} de {totalPaginas}
-      </span>
+      </div>
       
-      <button 
-        onClick={() => onPageChange(pagina + 1)} 
+      <button
+        onClick={handleNext}
         disabled={pagina === totalPaginas}
-        className="px-4 py-2 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        className="bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-r-lg hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         Próxima
       </button>

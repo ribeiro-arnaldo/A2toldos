@@ -183,103 +183,95 @@ const OrcamentosPage = ({
           </div>
         </form>
       </div>
-
-      <div className="bg-white rounded-lg shadow-lg overflow-x-auto">
-        {!buscaRealizada ? (
-          <div className="text-center p-12 text-gray-500">
-            <FiInfo className="mx-auto text-4xl mb-4" />
-            <h3 className="text-lg font-semibold">
-              Faça uma busca para ver os orçamentos.
-            </h3>
-            <p>
-              Utilize os filtros acima para encontrar um orçamento específico.
-            </p>
-          </div>
-        ) : (
-          <table className="w-full text-left">
-            <thead className="bg-gray-50">
-              <tr className="border-b-2 border-gray-200">
-                <th className="p-4 font-bold text-gray-600">Nº Orçamento</th>
-                <th className="p-4 font-bold text-gray-600">Cliente</th>
-                <th className="p-4 font-bold text-gray-600">Data</th>
-                <th className="p-4 font-bold text-gray-600 text-right">
-                  Valor Total
-                </th>
-                <th className="p-4 font-bold text-gray-600 text-center">
-                  Status
-                </th>
-                <th className="p-4 font-bold text-gray-600 text-center">
-                  Ações
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan="6" className="text-center p-8">
-                    A carregar...
-                  </td>
+      
+      {!buscaRealizada ? (
+        <div className="text-center p-12 bg-white rounded-lg shadow">
+          <FiInfo className="mx-auto text-4xl text-gray-400 mb-4" />
+          <h3 className="text-lg font-semibold text-gray-700">Faça uma busca para ver os orçamentos.</h3>
+          <p className="text-gray-500">Utilize os filtros acima para encontrar um orçamento específico.</p>
+        </div>
+      ) : loading ? (
+        <div className="text-center p-12 bg-white rounded-lg shadow">Carregando...</div>
+      ) : orcamentos.length === 0 ? (
+        <div className="text-center p-12 bg-white rounded-lg shadow">Nenhum orçamento encontrado.</div>
+      ) : (
+        <>
+          {/* Tabela para Desktop */}
+          <div className="hidden md:block bg-white rounded-lg shadow-lg overflow-x-auto">
+            <table className="w-full text-left">
+              <thead className="bg-gray-50">
+                <tr className="border-b-2 border-gray-200">
+                  <th className="p-4 font-bold text-gray-600">Nº Orçamento</th>
+                  <th className="p-4 font-bold text-gray-600">Cliente</th>
+                  <th className="p-4 font-bold text-gray-600">Data</th>
+                  <th className="p-4 font-bold text-gray-600 text-right">Valor Total</th>
+                  <th className="p-4 font-bold text-gray-600 text-center">Status</th>
+                  <th className="p-4 font-bold text-gray-600 text-center">Ações</th>
                 </tr>
-              ) : orcamentos.length === 0 ? (
-                <tr>
-                  <td colSpan="6" className="text-center p-8 text-gray-500">
-                    Nenhum orçamento encontrado.
-                  </td>
-                </tr>
-              ) : (
-                orcamentos.map((orcamento) => (
-                  <tr
-                    key={orcamento.id}
-                    className="border-b border-gray-100 hover:bg-gray-50"
-                  >
+              </thead>
+              <tbody>
+                {orcamentos.map((orcamento) => (
+                  <tr key={orcamento.id} className="border-b border-gray-100 hover:bg-gray-50">
                     <td className="p-4 font-mono font-semibold text-brand-blue hover:underline whitespace-nowrap">
-                      <Link to={`/orcamentos/${orcamento.id}`}>
-                        {orcamento.numero_orcamento}
-                      </Link>
+                      <Link to={`/orcamentos/${orcamento.id}`}>{orcamento.numero_orcamento}</Link>
                     </td>
                     <td className="p-4">{orcamento.nome_cliente}</td>
-                    <td className="p-4 whitespace-nowrap">
-                      {formatDate(orcamento.data_orcamento)}
-                    </td>
-                    <td className="p-4 text-right whitespace-nowrap">
-                      {formatCurrency(orcamento.valor_total)}
-                    </td>
+                    <td className="p-4 whitespace-nowrap">{formatDate(orcamento.data_orcamento)}</td>
+                    <td className="p-4 text-right whitespace-nowrap">{formatCurrency(orcamento.valor_total)}</td>
                     <td className="p-4 text-center">
                       <StatusBadge status={orcamento.status} />
                     </td>
                     <td className="p-4">
                       <div className="flex items-center justify-center space-x-3">
-                        <Link
-                          to={`/orcamentos/${orcamento.id}/editar`}
-                          title="Editar"
-                          className="text-blue-600 hover:text-blue-800 transition-colors"
-                        >
+                        <Link to={`/orcamentos/${orcamento.id}/editar`} title="Editar" className="text-blue-600 hover:text-blue-800 transition-colors">
                           <FiEdit size={18} />
                         </Link>
-                        <button
-                          onClick={() => handleDeleteClick(orcamento)}
-                          title="Apagar"
-                          className="text-red-600 hover:text-red-800 transition-colors"
-                        >
+                        <button onClick={() => handleDeleteClick(orcamento)} title="Apagar" className="text-red-600 hover:text-red-800 transition-colors">
                           <FiTrash2 size={18} />
                         </button>
                       </div>
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        )}
-      </div>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
-      {buscaRealizada && orcamentos.length > 0 && (
-        <Pagination
-          pagina={dadosPaginacao.pagina}
-          limite={dadosPaginacao.limite}
-          total={dadosPaginacao.total}
-          onPageChange={handleSearch}
-        />
+          {/* Cards para Mobile */}
+          <div className="md:hidden space-y-4">
+            {orcamentos.map(orcamento => (
+              <div key={orcamento.id} className="bg-white p-4 rounded-lg shadow">
+                <div className="flex justify-between items-start">
+                  <Link to={`/orcamentos/${orcamento.id}`} className="font-bold text-brand-blue text-lg font-mono">{orcamento.numero_orcamento}</Link>
+                  <div className="flex items-center space-x-3">
+                    <Link to={`/orcamentos/${orcamento.id}/editar`} title="Editar" className="text-blue-600">
+                      <FiEdit size={18} />
+                    </Link>
+                    <button onClick={() => handleDeleteClick(orcamento)} title="Apagar" className="text-red-600">
+                      <FiTrash2 size={18} />
+                    </button>
+                  </div>
+                </div>
+                <div className="mt-2 text-sm text-gray-600 space-y-2">
+                  <p><strong>Cliente:</strong> {orcamento.nome_cliente}</p>
+                  <p><strong>Data:</strong> {formatDate(orcamento.data_orcamento)}</p>
+                  <p><strong>Valor:</strong> <span className="font-semibold">{formatCurrency(orcamento.valor_total)}</span></p>
+                  <div className="flex items-center">
+                    <strong className="mr-2">Status:</strong>
+                    <StatusBadge status={orcamento.status} />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          
+          <Pagination
+            pagina={dadosPaginacao.pagina}
+            limite={dadosPaginacao.limite}
+            total={dadosPaginacao.total}
+            onPageChange={handleSearch}
+          />
+        </>
       )}
 
       <ConfirmationModal
