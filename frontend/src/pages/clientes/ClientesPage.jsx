@@ -54,7 +54,10 @@ const ClientesPage = ({
           total: response.data.total,
         });
       } catch (error) {
-        toast.error("Falha ao buscar clientes.");
+        const errorMessage =
+          error.response?.data?.erro || "Falha ao buscar clientes.";
+        toast.error(errorMessage);
+        console.error("Erro ao buscar clientes:", error);
       } finally {
         setLoading(false);
       }

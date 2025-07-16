@@ -47,9 +47,13 @@ const OrcamentoDetailPage = () => {
     try {
       await api.patch(`/orcamentos/${id}/status`, { status: novoStatus });
       toast.success("Status atualizado com sucesso!");
-      setOrcamento((prev) => ({ ...prev, status: novoStatus })); // Atualiza o status localmente
-    } catch (error) {
-      toast.error("Falha ao atualizar o status.");
+      setOrcamento((prev) => ({ ...prev, status: novoStatus }));
+    } catch (err) {
+      const errorMessage =
+        err.response?.data?.erro || "Falha ao carregar os dados do orçamento.";
+      setError(errorMessage);
+      toast.error(errorMessage);
+      console.error("Erro ao carregar orçamento:", err);
     } finally {
       setLoadingStatus(false);
     }
@@ -127,7 +131,7 @@ const OrcamentoDetailPage = () => {
         </div>
 
         <div className="border-t border-gray-200 mt-6 pt-4">
-          {/* --- CORREÇÃO: INFO GERAL PARA DESKTOP --- */}
+          {/* -INFO GERAL PARA DESKTOP - */}
           <div className="hidden md:grid grid-cols-1 md:grid-cols-3 gap-4 text-gray-700">
             <p>
               <strong>Cliente:</strong> {orcamento.nome_cliente}
@@ -140,7 +144,7 @@ const OrcamentoDetailPage = () => {
               {formatCurrency(orcamento.valor_total)}
             </p>
           </div>
-          {/* --- CORREÇÃO: INFO GERAL PARA MOBILE --- */}
+          {/* - INFO GERAL PARA MOBILE - */}
           <div className="md:hidden space-y-3 text-gray-700">
             <p>
               <strong>Cliente:</strong>
@@ -172,7 +176,7 @@ const OrcamentoDetailPage = () => {
           Itens do Orçamento
         </h2>
 
-        {/* --- CORREÇÃO: TABELA PARA DESKTOP --- */}
+        {/* - TABELA PARA DESKTOP - */}
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left">
             <thead className="bg-gray-50">
@@ -189,7 +193,7 @@ const OrcamentoDetailPage = () => {
           </table>
         </div>
 
-        {/* --- CORREÇÃO: CARDS DE ITENS PARA MOBILE --- */}
+        {/* -CARDS DE ITENS PARA MOBILE- */}
         <div className="md:hidden space-y-4">
           {orcamento.itens &&
             orcamento.itens.map((item) => (

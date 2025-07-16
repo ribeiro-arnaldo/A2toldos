@@ -29,7 +29,10 @@ const ClienteEditPage = () => {
         const dataFormatada = response.data.data_nascimento.split("T")[0];
         setFormData({ ...response.data, data_nascimento: dataFormatada });
       } catch (error) {
-        toast.error("Falha ao carregar dados do cliente.");
+        const errorMessage =
+          error.response?.data?.erro || "Falha ao carregar dados do cliente.";
+        toast.error(errorMessage);
+        console.error("Erro ao carregar cliente para edição:", error);
         navigate("/clientes");
       } finally {
         setLoading(false);
