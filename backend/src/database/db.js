@@ -47,6 +47,12 @@ db.serialize(() => {
     )
   `);
 
+  db.run('ALTER TABLE itens_orcamento ADD COLUMN material TEXT', (err) => {
+    if (err && !err.message.includes('duplicate column name')) {
+        console.error("Erro ao adicionar coluna 'material':", err.message);
+    }
+  });
+
     db.run(`
     CREATE TABLE IF NOT EXISTS usuarios (
       id INTEGER PRIMARY KEY AUTOINCREMENT,

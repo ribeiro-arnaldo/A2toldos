@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react"; // Adicione useCallback
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   FiFileText,
@@ -10,58 +10,68 @@ import {
   FiTrash2,
 } from "react-icons/fi";
 import toast from "react-hot-toast";
-
 import api from "../../api/api";
 import Pagination from "../../components/common/Pagination";
 import StatusBadge from "../../components/common/StatusBadge";
 import ConfirmationModal from "../../components/common/ConfirmationModal";
+import { formatDate, formatCurrency } from "../../utils/formatters"; // Importe seus formatadores
 
-const OrcamentosPage = ({
-  orcamentos,
-  setOrcamentos,
-  filtros,
-  setFiltros,
-  buscaRealizada,
-  setBuscaRealizada,
-  dadosPaginacao,
-  setDadosPaginacao,
-}) => {
+const OrcamentosPage = () => {
+  // O estado de orçamentos agora vive aqui.
+  const [orcamentos, setOrcamentos] = useState([]);
+  const [filtros, setFiltros] = useState({
+    numero_orcamento: "",
+    nome_cliente: "",
+    status: "TODOS",
+  });
+  const [buscaRealizada, setBuscaRealizada] = useState(false);
+  const [dadosPaginacao, setDadosPaginacao] = useState({
+    pagina: 1,
+    limite: 10,
+    total: 0,
+  });
+
   const location = useLocation();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [orcamentoParaApagar, setOrcamentoParaApagar] = useState(null);
 
-  const handleSearch = async (pagina = 1) => {
-    setLoading(true);
-    if (!buscaRealizada) setBuscaRealizada(true);
+  const handleSearch = useCallback(
+    async (pagina = 1) => {
+      setLoading(true);
+      if (!buscaRealizada) setBuscaRealizada(true);
 
-    const params = { ...filtros, pagina, limite: dadosPaginacao.limite };
-    if (!params.nome_cliente) delete params.nome_cliente;
-    if (!params.numero_orcamento) delete params.numero_orcamento;
+      const params = { ...filtros, pagina, limite: dadosPaginacao.limite };
+      if (!params.nome_cliente) delete params.nome_cliente;
+      if (!params.numero_orcamento) delete params.numero_orcamento;
 
-    try {
-      const response = await api.get("/orcamentos", { params });
-      setOrcamentos(response.data.orcamentos);
-      setDadosPaginacao({
-        pagina: response.data.pagina,
-        limite: response.data.limite,
-        total: response.data.total,
-      });
-    } catch (error) {
-      toast.error("Falha ao buscar orçamentos.");
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
+      try {
+        const response = await api.get("/orcamentos", { params });
+        setOrcamentos(response.data.orcamentos);
+        setDadosPaginacao({
+          pagina: response.data.pagina,
+          limite: response.data.limite,
+          total: response.data.total,
+        });
+      } catch (error) {
+        const errorMessage =
+          error.response?.data?.erro || "Falha ao buscar orçamentos.";
+        toast.error(errorMessage);
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [buscaRealizada, dadosPaginacao.limite, filtros]
+  );
 
   useEffect(() => {
     if (location.state?.refresh) {
       handleSearch(1);
       navigate(location.pathname, { replace: true });
     }
-  }, [location, navigate]);
+  }, [location, navigate, handleSearch]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -73,39 +83,33 @@ const OrcamentosPage = ({
     handleSearch(1);
   };
 
-  const handleClearFilters = () => {
+  const handleClearFilters = useCallback(() => {
     setFiltros({ numero_orcamento: "", nome_cliente: "", status: "TODOS" });
     setOrcamentos([]);
     setDadosPaginacao({ pagina: 1, limite: 10, total: 0 });
     setBuscaRealizada(false);
-  };
+  }, []);
 
   const handleDeleteClick = (orcamento) => {
     setOrcamentoParaApagar(orcamento);
     setIsModalOpen(true);
   };
 
-  const confirmDelete = async () => {
+  const confirmDelete = useCallback(async () => {
     if (!orcamentoParaApagar) return;
     try {
       await api.delete(`/orcamentos/${orcamentoParaApagar.id}`);
       toast.success("Orçamento apagado com sucesso!");
       handleSearch(dadosPaginacao.pagina);
     } catch (err) {
-      toast.error(err.response?.data?.erro || "Falha ao apagar o orçamento.");
+      const errorMessage =
+        err.response?.data?.erro || "Falha ao apagar o orçamento.";
+      toast.error(errorMessage);
     } finally {
       setIsModalOpen(false);
       setOrcamentoParaApagar(null);
     }
-  };
-
-  const formatDate = (dateString) =>
-    new Date(dateString).toLocaleDateString("pt-BR", { timeZone: "UTC" });
-  const formatCurrency = (value) =>
-    new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    }).format(value);
+  }, [orcamentoParaApagar, dadosPaginacao.pagina, handleSearch]);
 
   return (
     <div>
@@ -125,7 +129,10 @@ const OrcamentosPage = ({
         <form onSubmit={handleFormSubmit}>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label htmlFor="nome_cliente" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="nome_cliente"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Nome do Cliente
               </label>
               <input
@@ -139,7 +146,10 @@ const OrcamentosPage = ({
               />
             </div>
             <div>
-              <label htmlFor="numero_orcamento" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="numero_orcamento"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Nº do Orçamento
               </label>
               <input
@@ -153,7 +163,10 @@ const OrcamentosPage = ({
               />
             </div>
             <div>
-              <label htmlFor="status" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="status"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Status
               </label>
               <select
@@ -174,26 +187,41 @@ const OrcamentosPage = ({
             </div>
           </div>
           <div className="mt-4 flex justify-end space-x-4">
-            <button type="button" onClick={handleClearFilters} className="bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-lg flex items-center hover:bg-gray-300 transition-colors">
+            <button
+              type="button"
+              onClick={handleClearFilters}
+              className="bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-lg flex items-center hover:bg-gray-300 transition-colors"
+            >
               <FiRotateCw className="mr-2" /> Limpar
             </button>
-            <button type="submit" className="bg-brand-yellow text-brand-blue font-bold py-2 px-4 rounded-lg flex items-center justify-center hover:opacity-90 transition-opacity">
+            <button
+              type="submit"
+              className="bg-brand-yellow text-brand-blue font-bold py-2 px-4 rounded-lg flex items-center justify-center hover:opacity-90 transition-opacity"
+            >
               <FiSearch className="mr-2" /> Procurar
             </button>
           </div>
         </form>
       </div>
-      
+
       {!buscaRealizada ? (
         <div className="text-center p-12 bg-white rounded-lg shadow">
           <FiInfo className="mx-auto text-4xl text-gray-400 mb-4" />
-          <h3 className="text-lg font-semibold text-gray-700">Faça uma busca para ver os orçamentos.</h3>
-          <p className="text-gray-500">Utilize os filtros acima para encontrar um orçamento específico.</p>
+          <h3 className="text-lg font-semibold text-gray-700">
+            Faça uma busca para ver os orçamentos.
+          </h3>
+          <p className="text-gray-500">
+            Utilize os filtros acima para encontrar um orçamento específico.
+          </p>
         </div>
       ) : loading ? (
-        <div className="text-center p-12 bg-white rounded-lg shadow">Carregando...</div>
+        <div className="text-center p-12 bg-white rounded-lg shadow">
+          Carregando...
+        </div>
       ) : orcamentos.length === 0 ? (
-        <div className="text-center p-12 bg-white rounded-lg shadow">Nenhum orçamento encontrado.</div>
+        <div className="text-center p-12 bg-white rounded-lg shadow">
+          Nenhum orçamento encontrado.
+        </div>
       ) : (
         <>
           {/* Tabela para Desktop */}
@@ -204,29 +232,52 @@ const OrcamentosPage = ({
                   <th className="p-4 font-bold text-gray-600">Nº Orçamento</th>
                   <th className="p-4 font-bold text-gray-600">Cliente</th>
                   <th className="p-4 font-bold text-gray-600">Data</th>
-                  <th className="p-4 font-bold text-gray-600 text-right">Valor Total</th>
-                  <th className="p-4 font-bold text-gray-600 text-center">Status</th>
-                  <th className="p-4 font-bold text-gray-600 text-center">Ações</th>
+                  <th className="p-4 font-bold text-gray-600 text-right">
+                    Valor Total
+                  </th>
+                  <th className="p-4 font-bold text-gray-600 text-center">
+                    Status
+                  </th>
+                  <th className="p-4 font-bold text-gray-600 text-center">
+                    Ações
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {orcamentos.map((orcamento) => (
-                  <tr key={orcamento.id} className="border-b border-gray-100 hover:bg-gray-50">
+                  <tr
+                    key={orcamento.id}
+                    className="border-b border-gray-100 hover:bg-gray-50"
+                  >
                     <td className="p-4 font-mono font-semibold text-brand-blue hover:underline whitespace-nowrap">
-                      <Link to={`/orcamentos/${orcamento.id}`}>{orcamento.numero_orcamento}</Link>
+                      <Link to={`/orcamentos/${orcamento.id}`}>
+                        {orcamento.numero_orcamento}
+                      </Link>
                     </td>
                     <td className="p-4">{orcamento.nome_cliente}</td>
-                    <td className="p-4 whitespace-nowrap">{formatDate(orcamento.data_orcamento)}</td>
-                    <td className="p-4 text-right whitespace-nowrap">{formatCurrency(orcamento.valor_total)}</td>
+                    <td className="p-4 whitespace-nowrap">
+                      {formatDate(orcamento.data_orcamento)}
+                    </td>
+                    <td className="p-4 text-right whitespace-nowrap">
+                      {formatCurrency(orcamento.valor_total)}
+                    </td>
                     <td className="p-4 text-center">
                       <StatusBadge status={orcamento.status} />
                     </td>
                     <td className="p-4">
                       <div className="flex items-center justify-center space-x-3">
-                        <Link to={`/orcamentos/${orcamento.id}/editar`} title="Editar" className="text-blue-600 hover:text-blue-800 transition-colors">
+                        <Link
+                          to={`/orcamentos/${orcamento.id}/editar`}
+                          title="Editar"
+                          className="text-blue-600 hover:text-blue-800 transition-colors"
+                        >
                           <FiEdit size={18} />
                         </Link>
-                        <button onClick={() => handleDeleteClick(orcamento)} title="Apagar" className="text-red-600 hover:text-red-800 transition-colors">
+                        <button
+                          onClick={() => handleDeleteClick(orcamento)}
+                          title="Apagar"
+                          className="text-red-600 hover:text-red-800 transition-colors"
+                        >
                           <FiTrash2 size={18} />
                         </button>
                       </div>
@@ -239,23 +290,49 @@ const OrcamentosPage = ({
 
           {/* Cards para Mobile */}
           <div className="md:hidden space-y-4">
-            {orcamentos.map(orcamento => (
-              <div key={orcamento.id} className="bg-white p-4 rounded-lg shadow">
+            {orcamentos.map((orcamento) => (
+              <div
+                key={orcamento.id}
+                className="bg-white p-4 rounded-lg shadow"
+              >
                 <div className="flex justify-between items-start">
-                  <Link to={`/orcamentos/${orcamento.id}`} className="font-bold text-brand-blue text-lg font-mono">{orcamento.numero_orcamento}</Link>
+                  <Link
+                    to={`/orcamentos/${orcamento.id}`}
+                    className="font-bold text-brand-blue text-lg font-mono"
+                  >
+                    {orcamento.numero_orcamento}
+                  </Link>
                   <div className="flex items-center space-x-3">
-                    <Link to={`/orcamentos/${orcamento.id}/editar`} title="Editar" className="text-blue-600">
+                    <Link
+                      to={`/orcamentos/${orcamento.id}/editar`}
+                      title="Editar"
+                      className="text-blue-600"
+                    >
                       <FiEdit size={18} />
                     </Link>
-                    <button onClick={() => handleDeleteClick(orcamento)} title="Apagar" className="text-red-600">
+                    <button
+                      onClick={() => handleDeleteClick(orcamento)}
+                      title="Apagar"
+                      className="text-red-600"
+                    >
                       <FiTrash2 size={18} />
                     </button>
                   </div>
                 </div>
                 <div className="mt-2 text-sm text-gray-600 space-y-2">
-                  <p><strong>Cliente:</strong> {orcamento.nome_cliente}</p>
-                  <p><strong>Data:</strong> {formatDate(orcamento.data_orcamento)}</p>
-                  <p><strong>Valor:</strong> <span className="font-semibold">{formatCurrency(orcamento.valor_total)}</span></p>
+                  <p>
+                    <strong>Cliente:</strong> {orcamento.nome_cliente}
+                  </p>
+                  <p>
+                    <strong>Data:</strong>{" "}
+                    {formatDate(orcamento.data_orcamento)}
+                  </p>
+                  <p>
+                    <strong>Valor:</strong>{" "}
+                    <span className="font-semibold">
+                      {formatCurrency(orcamento.valor_total)}
+                    </span>
+                  </p>
                   <div className="flex items-center">
                     <strong className="mr-2">Status:</strong>
                     <StatusBadge status={orcamento.status} />
@@ -264,7 +341,7 @@ const OrcamentosPage = ({
               </div>
             ))}
           </div>
-          
+
           <Pagination
             pagina={dadosPaginacao.pagina}
             limite={dadosPaginacao.limite}

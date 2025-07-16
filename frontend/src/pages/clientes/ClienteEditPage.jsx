@@ -91,7 +91,7 @@ const ClienteEditPage = () => {
     try {
       await api.put(`/clientes/${id}`, formData);
       toast.success("Cliente atualizado com sucesso!");
-      navigate(`/clientes/${id}`), { state: { refresh: true } };
+      navigate(`/clientes/${id}`);
     } catch (err) {
       const errorMessage =
         err.response?.data?.erro || "Ocorreu um erro desconhecido.";

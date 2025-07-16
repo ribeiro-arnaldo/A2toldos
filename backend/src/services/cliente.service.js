@@ -35,17 +35,24 @@ class ClienteService {
     let query = 'SELECT * FROM clientes WHERE 1=1';
     const params = [];
 
-    if (filtros.nome) {
-      query += ' AND nome LIKE ?';
-      params.push(`%${filtros.nome}%`);
-    }
-    if (filtros.documento) {
-      query += ' AND documento = ?';      
-      params.push(filtros.documento.replace(/\D/g, ''));
-    }    
-    if (filtros.telefone) {
-      query += ' AND telefone = ?'; 
-      params.push(filtros.telefone.replace(/\D/g, ''));
+     if (filtros && filtros.tipo && filtros.termo) {
+        const termo = filtros.termo;
+        const tipo = filtros.tipo;
+
+        switch (tipo) {
+            case 'nome':
+                query += ' AND nome LIKE ?';
+                params.push(`%${termo}%`);
+                break;
+            case 'documento':
+                query += ' AND documento = ?';
+                params.push(termo.replace(/\D/g, ''));
+                break;
+            case 'telefone':
+                query += ' AND telefone LIKE ?';
+                params.push(`%${termo.replace(/\D/g, '')}%`);
+                break;
+        }
     }
     
     const countQuery = query.replace('SELECT *', 'SELECT COUNT(*) as total');

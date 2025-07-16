@@ -15,18 +15,21 @@ import Pagination from "../../components/common/Pagination";
 import ConfirmationModal from "../../components/common/ConfirmationModal";
 import { formatarDocumento, formatarTelefone } from "../../utils/formatters";
 
-const ClientesPage = ({
-  clientes,
-  setClientes,
-  filtros,
-  setFiltros,
-  buscaRealizada,
-  setBuscaRealizada,
-  dadosPaginacao,
-  setDadosPaginacao,
-}) => {
+// 1. O componente agora não recebe mais props de estado.
+const ClientesPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
+
+  // 2. Todo o estado relacionado a clientes agora vive AQUI DENTRO.
+  const [clientes, setClientes] = useState([]);
+  const [filtros, setFiltros] = useState({ tipo: "nome", termo: "" });
+  const [buscaRealizada, setBuscaRealizada] = useState(false);
+  const [dadosPaginacao, setDadosPaginacao] = useState({
+    pagina: 1,
+    limite: 10,
+    total: 0,
+  });
+
   const [loading, setLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [clienteParaApagar, setClienteParaApagar] = useState(null);
@@ -62,15 +65,7 @@ const ClientesPage = ({
         setLoading(false);
       }
     },
-    [
-      buscaRealizada,
-      dadosPaginacao.limite,
-      filtros,
-      setBuscaRealizada,
-      setClientes,
-      setDadosPaginacao,
-      setLoading,
-    ]
+    [buscaRealizada, dadosPaginacao.limite, filtros]
   );
 
   useEffect(() => {
@@ -95,7 +90,7 @@ const ClientesPage = ({
     setClientes([]);
     setBuscaRealizada(false);
     setDadosPaginacao({ pagina: 1, limite: 10, total: 0 });
-  }, [setClientes, setFiltros, setBuscaRealizada, setDadosPaginacao]);
+  }, []);
 
   const handleDeleteClick = (cliente) => {
     setClienteParaApagar(cliente);
@@ -109,7 +104,9 @@ const ClientesPage = ({
       toast.success("Cliente apagado com sucesso!");
       handleSearch(dadosPaginacao.pagina);
     } catch (err) {
-      toast.error(err.response?.data?.erro || "Falha ao apagar o cliente.");
+      const errorMessage =
+        err.response?.data?.erro || "Falha ao apagar o cliente.";
+      toast.error(errorMessage);
     } finally {
       setIsModalOpen(false);
       setClienteParaApagar(null);

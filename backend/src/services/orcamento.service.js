@@ -56,11 +56,11 @@ class OrcamentoService {
       const result = await dbRun(orcamentoQuery, [cliente_id, descricao, valor_total_calculado, data_orcamento, prazo_entrega, numero_orcamento]);
       const orcamento_id = result.lastID;
 
-      const itemQuery = `INSERT INTO itens_orcamento (orcamento_id, descricao_item, cor, observacoes, largura, comprimento, preco_m2, valor_item) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
-      for (const item of itens) {
-        const valor_item = item.largura * item.comprimento * item.preco_m2;
-        await dbRun(itemQuery, [orcamento_id, item.descricao_item, item.cor, item.observacoes, item.largura, item.comprimento, item.preco_m2, valor_item]);
-      }
+      const itemQuery = `INSERT INTO itens_orcamento (orcamento_id, descricao_item, cor, observacoes, largura, comprimento, preco_m2, valor_item, material) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`; // Adicionado 'material'
+    for (const item of itens) {
+      const valor_item = item.largura * item.comprimento * item.preco_m2;
+      await dbRun(itemQuery, [orcamento_id, item.descricao_item, item.cor, item.observacoes, item.largura, item.comprimento, item.preco_m2, valor_item, item.material]);
+    }
 
       await dbRun('COMMIT;');
       
@@ -116,11 +116,15 @@ class OrcamentoService {
   }
 
   async findById(id) {
-    const orcamentoQuery = `
+     const orcamentoQuery = `
       SELECT
-        o.id, o.numero_orcamento, o.descricao, o.valor_total, o.data_orcamento, o.prazo_entrega,
-        o.status, o.cliente_id, c.nome as nome_cliente, c.email as email_cliente,
-        c.telefone as telefone_cliente
+        o.*,
+        c.nome as nome_cliente,
+        c.email as email_cliente,
+        c.telefone as telefone_cliente,
+        c.documento as cliente_documento,
+        c.tipo_pessoa as cliente_tipo_pessoa,
+        c.endereco as cliente_endereco
       FROM orcamentos o
       JOIN clientes c ON o.cliente_id = c.id
       WHERE o.id = ?
@@ -128,9 +132,8 @@ class OrcamentoService {
     const orcamento = await dbGet(orcamentoQuery, [id]);
     if (!orcamento) throw new Error('Orçamento não encontrado.');
 
-    const itensQuery = 'SELECT * FROM itens_orcamento WHERE orcamento_id = ?';
+     const itensQuery = 'SELECT *, material FROM itens_orcamento WHERE orcamento_id = ?';
     const itens = await dbAll(itensQuery, [id]);
-
     return { ...orcamento, itens };
   } 
   
@@ -152,11 +155,11 @@ class OrcamentoService {
             throw new Error('Orçamento não encontrado para atualização.');
         }
 
-        const itemQuery = `INSERT INTO itens_orcamento (orcamento_id, descricao_item, cor, observacoes, largura, comprimento, preco_m2, valor_item) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
-        for (const item of itens) {
-            const valor_item = item.largura * item.comprimento * item.preco_m2;
-            await dbRun(itemQuery, [id, item.descricao_item, item.cor, item.observacoes, item.largura, item.comprimento, item.preco_m2, valor_item]);
-        }
+        const itemQuery = `INSERT INTO itens_orcamento (orcamento_id, descricao_item, cor, observacoes, largura, comprimento, preco_m2, valor_item, material) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`; // Adicionado 'material'
+    for (const item of itens) {
+        const valor_item = item.largura * item.comprimento * item.preco_m2; 
+        await dbRun(itemQuery, [id, item.descricao_item, item.cor, item.observacoes, item.largura, item.comprimento, item.preco_m2, valor_item, item.material]);
+    }
         
         await dbRun('COMMIT;');
         return { id: parseInt(id), valor_total: valor_total_calculado };

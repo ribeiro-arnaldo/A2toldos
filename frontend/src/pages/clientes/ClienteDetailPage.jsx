@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { FiUser, FiFileText, FiArrowLeft, FiEdit } from "react-icons/fi";
 import api from "../../api/api";
 import StatusBadge from "../../components/common/StatusBadge";
@@ -16,6 +16,7 @@ const ClienteDetailPage = () => {
   const [orcamentos, setOrcamentos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -50,13 +51,13 @@ const ClienteDetailPage = () => {
 
   return (
     <div>
-      <Link
-        to="/clientes"
+      <button
+        onClick={() => navigate("/clientes", { state: { refresh: true } })}
         className="inline-flex items-center text-brand-blue font-semibold hover:underline mb-6"
       >
         <FiArrowLeft className="mr-2" />
         Voltar para a Lista de Clientes
-      </Link>
+      </button>
 
       <div className="bg-white p-6 rounded-lg shadow-lg mb-6">
         <div className="flex justify-between items-start">
