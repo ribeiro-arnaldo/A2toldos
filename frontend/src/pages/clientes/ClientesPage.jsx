@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   FiUsers,
@@ -13,6 +13,7 @@ import toast from "react-hot-toast";
 import api from "../../api/api";
 import Pagination from "../../components/common/Pagination";
 import ConfirmationModal from "../../components/common/ConfirmationModal";
+import { formatarDocumento, formatarTelefone } from "../../utils/formatters";
 
 const ClientesPage = ({
   clientes,
@@ -30,41 +31,51 @@ const ClientesPage = ({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [clienteParaApagar, setClienteParaApagar] = useState(null);
 
-  const handleSearch = async (pagina = 1) => {
-    setLoading(true);
-    if (!buscaRealizada) setBuscaRealizada(true);
+  const handleSearch = useCallback(
+    async (pagina = 1) => {
+      setLoading(true);
+      if (!buscaRealizada) setBuscaRealizada(true);
 
-    const params = {
-      pagina,
-      limite: dadosPaginacao.limite,
-    };
+      const params = {
+        pagina,
+        limite: dadosPaginacao.limite,
+      };
+      if (filtros.termo && filtros.termo.trim() !== "") {
+        params.tipo = filtros.tipo;
+        params.termo = filtros.termo;
+      }
 
-    if (filtros.termo && filtros.termo.trim() !== "") {
-      params.tipo = filtros.tipo;
-      params.termo = filtros.termo;
-    }
-
-    try {
-      const response = await api.get("/clientes", { params });
-      setClientes(response.data.clientes);
-      setDadosPaginacao({
-        pagina: response.data.pagina,
-        limite: response.data.limite,
-        total: response.data.total,
-      });
-    } catch (error) {
-      toast.error("Falha ao buscar clientes.");
-    } finally {
-      setLoading(false);
-    }
-  };
+      try {
+        const response = await api.get("/clientes", { params });
+        setClientes(response.data.clientes);
+        setDadosPaginacao({
+          pagina: response.data.pagina,
+          limite: response.data.limite,
+          total: response.data.total,
+        });
+      } catch (error) {
+        toast.error("Falha ao buscar clientes.");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [
+      buscaRealizada,
+      dadosPaginacao.limite,
+      filtros,
+      setBuscaRealizada,
+      setClientes,
+      setDadosPaginacao,
+      setLoading,
+    ]
+  );
 
   useEffect(() => {
     if (location.state?.refresh) {
       handleSearch(1);
       navigate(location.pathname, { replace: true });
     }
-  }, [location, navigate]);
+  }, [location, navigate, handleSearch]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -76,19 +87,19 @@ const ClientesPage = ({
     handleSearch(1);
   };
 
-  const handleClearFilters = () => {
+  const handleClearFilters = useCallback(() => {
     setFiltros({ tipo: "nome", termo: "" });
     setClientes([]);
     setBuscaRealizada(false);
     setDadosPaginacao({ pagina: 1, limite: 10, total: 0 });
-  };
+  }, [setClientes, setFiltros, setBuscaRealizada, setDadosPaginacao]);
 
   const handleDeleteClick = (cliente) => {
     setClienteParaApagar(cliente);
     setIsModalOpen(true);
   };
 
-  const confirmDelete = async () => {
+  const confirmDelete = useCallback(async () => {
     if (!clienteParaApagar) return;
     try {
       await api.delete(`/clientes/${clienteParaApagar.id}`);
@@ -100,29 +111,7 @@ const ClientesPage = ({
       setIsModalOpen(false);
       setClienteParaApagar(null);
     }
-  };
-
-  const formatarDocumento = (doc, tipo) => {
-    if (!doc) return "";
-    const docLimpo = String(doc).replace(/\D/g, "");
-    if (tipo === "FISICA") {
-      return docLimpo.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
-    }
-    return docLimpo.replace(
-      /(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/,
-      "$1.$2.$3/$4-$5"
-    );
-  };
-
-  const formatarTelefone = (tel) => {
-    if (!tel) return "";
-    const telLimpo = String(tel).replace(/\D/g, "").slice(0, 11);
-    if (telLimpo.length === 11)
-      return telLimpo.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3");
-    if (telLimpo.length === 10)
-      return telLimpo.replace(/(\d{2})(\d{4})(\d{4})/, "($1) $2-$3");
-    return telLimpo;
-  };
+  }, [clienteParaApagar, dadosPaginacao.pagina, handleSearch]);
 
   return (
     <div>

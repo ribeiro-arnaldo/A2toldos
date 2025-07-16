@@ -14,6 +14,7 @@ import toast from "react-hot-toast";
 
 import api from "../../api/api";
 import StatusBadge from "../../components/common/StatusBadge";
+import { formatCurrency, formatDate } from "../../utils/formatters";
 
 const OrcamentoDetailPage = () => {
   const { id } = useParams();
@@ -52,21 +53,6 @@ const OrcamentoDetailPage = () => {
     } finally {
       setLoadingStatus(false);
     }
-  };
-
-  const formatCurrency = (value) => {
-    if (typeof value !== "number") return "R$ 0,00";
-    return new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    }).format(value);
-  };
-
-  const formatDate = (dateString) => {
-    if (!dateString) return "";
-    return new Date(dateString).toLocaleDateString("pt-BR", {
-      timeZone: "UTC",
-    });
   };
 
   if (loading)

@@ -3,10 +3,15 @@ import { useParams, Link } from "react-router-dom";
 import { FiUser, FiFileText, FiArrowLeft, FiEdit } from "react-icons/fi";
 import api from "../../api/api";
 import StatusBadge from "../../components/common/StatusBadge";
+import {
+  formatarDocumento,
+  formatarTelefone,
+  formatDate,
+  formatCurrency,
+} from "../../utils/formatters";
 
 const ClienteDetailPage = () => {
   const { id } = useParams();
-
   const [cliente, setCliente] = useState(null);
   const [orcamentos, setOrcamentos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -34,43 +39,6 @@ const ClienteDetailPage = () => {
 
     fetchData();
   }, [id]);
-
-  // --- FUNÇÕES DE FORMATAÇÃO ---
-  const formatarDocumento = (doc, tipo) => {
-    if (!doc) return "";
-    const docLimpo = String(doc).replace(/\D/g, "");
-    if (tipo === "FISICA") {
-      return docLimpo.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
-    }
-    return docLimpo.replace(
-      /(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/,
-      "$1.$2.$3/$4-$5"
-    );
-  };
-
-  const formatarTelefone = (tel) => {
-    if (!tel) return "";
-    const telLimpo = String(tel).replace(/\D/g, "").slice(0, 11);
-    if (telLimpo.length === 11)
-      return telLimpo.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3");
-    if (telLimpo.length === 10)
-      return telLimpo.replace(/(\d{2})(\d{4})(\d{4})/, "($1) $2-$3");
-    return telLimpo;
-  };
-
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString("pt-BR", {
-      timeZone: "UTC",
-    });
-  };
-
-  const formatCurrency = (value) => {
-    return new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    }).format(value);
-  };
-  // --- FIM DAS FUNÇÕES ---
 
   if (loading)
     return (
