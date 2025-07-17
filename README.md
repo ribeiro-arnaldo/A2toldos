@@ -2,6 +2,6 @@ Repositorio contendo uma aplicação realizada afins de aprimoramento apos concl
 
 Primeiro passo criar .env
 node server.js para rodar o backend
-npm run dev para rodar o front end
+npm run dev para rodar o frontend
 
-[localhost](http://localhost:5173/)
+http://localhost:5173/
