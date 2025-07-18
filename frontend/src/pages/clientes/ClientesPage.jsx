@@ -15,12 +15,11 @@ import Pagination from "../../components/common/Pagination";
 import ConfirmationModal from "../../components/common/ConfirmationModal";
 import { formatarDocumento, formatarTelefone } from "../../utils/formatters";
 
-// 1. O componente agora não recebe mais props de estado.
+
 const ClientesPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
-
-  // 2. Todo o estado relacionado a clientes agora vive AQUI DENTRO.
+  
   const [clientes, setClientes] = useState([]);
   const [filtros, setFiltros] = useState({ tipo: "nome", termo: "" });
   const [buscaRealizada, setBuscaRealizada] = useState(false);

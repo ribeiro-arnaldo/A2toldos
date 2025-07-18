@@ -8,7 +8,7 @@ const ClienteForm = ({ formData, setFormData, errors }) => {
     // Lógica que processa os inputs em tempo real
     if (name === "nome") {
       // Remove números do campo nome
-      processedValue = value.replace(/[0-9]/g, "");
+      processedValue = value.replace(/[^a-zA-ZáàâãéèêíïóôõöúçñÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ ]/g, "");
     } else if (name === "telefone") {
       // Remove tudo que não for dígito e limita o tamanho
       processedValue = value.replace(/\D/g, "").slice(0, 11);
@@ -20,7 +20,6 @@ const ClienteForm = ({ formData, setFormData, errors }) => {
       processedValue = processedValue.slice(0, maxLength);
     }
 
-    // Atualiza o estado do formulário com o valor processado
     setFormData((prevState) => ({ ...prevState, [name]: processedValue }));
   };
 

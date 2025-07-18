@@ -34,14 +34,11 @@ class ClienteService {
   async listAll(filtros) {
     let query = 'SELECT * FROM clientes WHERE 1=1';
     const params = [];
-
-     if (filtros && filtros.tipo && filtros.termo) {
-        const termo = filtros.termo;
-        const tipo = filtros.tipo;
-
+    if (filtros?.tipo && filtros?.termo) {
+        const { tipo, termo } = filtros;
         switch (tipo) {
             case 'nome':
-                query += ' AND nome LIKE ?';
+                query += ' AND nome LIKE ? COLLATE NOCASE'; 
                 params.push(`%${termo}%`);
                 break;
             case 'documento':
@@ -53,7 +50,13 @@ class ClienteService {
                 params.push(`%${termo.replace(/\D/g, '')}%`);
                 break;
         }
+    } 
+    
+    else if (filtros?.nome) {
+        query += ' AND nome LIKE ? COLLATE NOCASE';
+        params.push(`%${filtros.nome}%`);
     }
+    
     
     const countQuery = query.replace('SELECT *', 'SELECT COUNT(*) as total');
     const total = await new Promise((resolve, reject) => {
