@@ -98,7 +98,9 @@ class AuthService {
             if (updateErr) return reject(new Error('Erro ao gerar token de recuperação.'));
 
             const transporter = nodemailer.createTransport({
-              service: 'gmail',
+              host: 'smtp.gmail.com',
+              port: 465,
+              secure: true, // Força o uso da conexão criptografada (obrigatório em produção)
               auth: {
                 user: process.env.EMAIL_USER,
                 pass: process.env.EMAIL_PASS
