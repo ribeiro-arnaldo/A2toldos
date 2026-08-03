@@ -99,12 +99,16 @@ class AuthService {
 
             const transporter = nodemailer.createTransport({
               host: 'smtp.gmail.com',
-              port: 465,
-              secure: true, // Força o uso da conexão criptografada (obrigatório em produção)
+              port: 587,
+              secure: false, 
+              requireTLS: true,
               auth: {
                 user: process.env.EMAIL_USER,
                 pass: process.env.EMAIL_PASS
-              }
+              },
+              tls: {
+               rejectUnauthorized: false
+            }
             });
 
             const resetLink = `https://a2toldos.vercel.app/reset-password?token=${token}`;
