@@ -2,7 +2,10 @@ const db = require('../database/db');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend'); // Importação do Resend
+
+// Inicializa o Resend com a chave do Render (.env)
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 class AuthService {
 
@@ -67,7 +70,8 @@ class AuthService {
     const payload = {
       id: user.id,
       nome: user.nome,
-      perfil: user.perfil    };
+      perfil: user.perfil    
+    };
     
     const token = jwt.sign(payload, process.env.JWT_SECRET, {
       expiresIn: '4h' 
@@ -97,34 +101,28 @@ class AuthService {
           [token, expires, user.id], async (updateErr) => {
             if (updateErr) return reject(new Error('Erro ao gerar token de recuperação.'));
 
-            const transporter = nodemailer.createTransport({
-              host: 'smtp.gmail.com',
-              port: 587,
-              secure: false, 
-              requireTLS: true,
-              auth: {
-                user: process.env.EMAIL_USER,
-                pass: process.env.EMAIL_PASS
-              },
-              tls: {
-               rejectUnauthorized: false
-            }
-            });
-
             const resetLink = `https://a2toldos.vercel.app/reset-password?token=${token}`;
 
             try {
-              await transporter.sendMail({
-                to: user.email,
+              // Disparo de e-mail via Resend (Substituiu o Nodemailer)
+              const { data, error } = await resend.emails.send({
+                from: 'A2 Toldos (Teste) <onboarding@resend.dev>', // Obrigatório usar esse no modo de teste
+                to: user.email, 
                 subject: 'A2 Toldos - Recuperação de Senha',
                 html: `<p>Você solicitou a recuperação de senha.</p>
                        <p>Clique no link abaixo para definir uma nova senha (válido por 15 minutos):</p>
                        <a href="${resetLink}">${resetLink}</a>`
               });
 
+              if (error) {
+                console.error("Erro interno do Resend:", error);
+                return reject(new Error('Erro ao enviar o e-mail.'));
+              }
+
               resolve({ message: 'E-mail de recuperação enviado com sucesso!' });
-            } catch (mailError) {
-              reject(new Error('Erro ao enviar o e-mail.'));
+            } catch (apiError) {
+              console.error("Erro na requisição da API:", apiError);
+              reject(new Error('Erro ao comunicar com o servidor de e-mail.'));
             }
         });
       });
