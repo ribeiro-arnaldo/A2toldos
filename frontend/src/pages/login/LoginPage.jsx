@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom"; // <-- Link adicionado aqui
 import { useAuth } from "../../context/AuthContext";
 import api from "../../api/api";
 import toast from "react-hot-toast";
@@ -77,6 +77,7 @@ const LoginPage = () => {
               />
             </div>
           </div>
+          
           <div>
             <label
               htmlFor="senha"
@@ -100,7 +101,17 @@ const LoginPage = () => {
                 placeholder="Sua senha"
               />
             </div>
+            {/* LINK ESQUECI MINHA SENHA */}
+            <div className="flex justify-end mt-2">
+              <Link 
+                to="/forgot-password" 
+                className="text-sm font-medium text-brand-blue hover:underline"
+              >
+                Esqueci minha senha
+              </Link>
+            </div>
           </div>
+
           <div className="pt-2">
             <button
               type="submit"

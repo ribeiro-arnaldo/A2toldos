@@ -59,9 +59,13 @@ db.serialize(() => {
       nome TEXT NOT NULL,
       email TEXT NOT NULL UNIQUE,
       senha_hash TEXT NOT NULL,
-      perfil TEXT NOT NULL DEFAULT 'VENDEDOR' -- Nova coluna adicionada
+      perfil TEXT NOT NULL DEFAULT 'VENDEDOR',
+      reset_token TEXT,
+      reset_token_expires DATETIME
     )
   `);
+  db.run('ALTER TABLE usuarios ADD COLUMN reset_token TEXT', (err) => {});
+  db.run('ALTER TABLE usuarios ADD COLUMN reset_token_expires DATETIME', (err) => {});
 });
 
 module.exports = db;

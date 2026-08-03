@@ -17,6 +17,8 @@ import OrcamentoEditPage from "./pages/orcamentos/OrcamentoEditPage.jsx";
 import UsuariosPage from "./pages/usuarios/UsuariosPage";
 import UsuariosEditPage from "./pages/usuarios/UsuariosEditPage";
 import UsuariosFormPage from "./pages/usuarios/UsuariosFormPage";
+import ForgotPassword from './pages/login/ForgotPassword';
+import ResetPassword from './pages/login/ResetPassword';
 
 // Imports dos componentes globais
 import PrivateWrapper from "./components/layout/PrivateWrapper";
@@ -35,8 +37,10 @@ function App() {
           }}
         />
         <Routes>
-          {/*  Rota pública para o Login */}
+          {/*  Rotas públicas */}
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
 
           {/*  Todas as rotas privadas são agrupadas e protegidas pelo PrivateWrapper */}
           <Route element={<PrivateWrapper />}>

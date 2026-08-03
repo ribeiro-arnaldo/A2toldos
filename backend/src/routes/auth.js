@@ -2,10 +2,9 @@ const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/auth.controller');
 
-// Rota para registrar um novo usuário do sistema
 router.post('/register', authController.register);
-
-// Rota para fazer login e obter um token
 router.post('/login', authController.login);
+router.post('/forgot-password', authController.forgotPassword);
+router.post('/reset-password', authController.resetPassword);
 
 module.exports = router;
