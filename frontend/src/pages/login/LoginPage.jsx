@@ -1,10 +1,11 @@
+```javascript
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../api/api";
 import toast from "react-hot-toast";
 import logoA2Toldos from "../../assets/LogoA2Toldos.png";
-import { FiLogIn, FiLoader } from "react-icons/fi";
+import { FiLogIn, FiLoader, FiMail, FiLock } from "react-icons/fi";
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -39,8 +40,8 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
-      <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-lg">
+    <div className="flex items-center justify-center min-h-screen bg-slate-200">
+      <div className="w-full max-w-md p-8 space-y-6 bg-white border border-gray-300 rounded-xl shadow-xl">
         <div className="text-center">
           <img
             src={logoA2Toldos}
@@ -52,57 +53,69 @@ const LoginPage = () => {
           </h1>
           <p className="text-gray-600">Faça o login para continuar</p>
         </div>
-        <form onSubmit={handleLogin} className="space-y-6">
+        <form onSubmit={handleLogin} className="space-y-5">
           <div>
             <label
               htmlFor="email"
-              className="text-sm font-medium text-gray-700"
+              className="text-sm font-medium text-gray-700 block mb-1"
             >
               E-mail
             </label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              autoComplete="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-brand-yellow focus:border-brand-yellow"
-              placeholder="seuemail@exemplo.com"
-            />
+            <div className="relative">
+              <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400">
+                <FiMail size={18} />
+              </span>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="block w-full pl-10 pr-3 py-2.5 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-blue focus:border-brand-blue text-sm"
+                placeholder="seuemail@exemplo.com"
+              />
+            </div>
           </div>
           <div>
             <label
               htmlFor="senha"
-              className="text-sm font-medium text-gray-700"
+              className="text-sm font-medium text-gray-700 block mb-1"
             >
               Senha
             </label>
-            <input
-              id="senha"
-              name="senha"
-              type="password"
-              autoComplete="current-password"
-              required
-              value={senha}
-              onChange={(e) => setSenha(e.target.value)}
-              className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-brand-yellow focus:border-brand-yellow"
-              placeholder="Sua senha"
-            />
+            <div className="relative">
+              <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400">
+                <FiLock size={18} />
+              </span>
+              <input
+                id="senha"
+                name="senha"
+                type="password"
+                autoComplete="current-password"
+                required
+                value={senha}
+                onChange={(e) => setSenha(e.target.value)}
+                className="block w-full pl-10 pr-3 py-2.5 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-blue focus:border-brand-blue text-sm"
+                placeholder="Sua senha"
+              />
+            </div>
           </div>
-          <div>
+          <div className="pt-2">
             <button
               type="submit"
               disabled={loading}
-              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-brand-blue hover:bg-opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-blue disabled:bg-gray-400"
+              className="w-full flex justify-center items-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-semibold text-white bg-brand-blue hover:bg-opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-blue disabled:bg-gray-400 transition-colors"
             >
               {loading ? (
-                <FiLoader className="animate-spin" />
+                <FiLoader className="animate-spin text-lg" />
               ) : (
-                <FiLogIn className="mr-2" />
+                <>
+                  <FiLogIn className="mr-2 text-lg" />
+                  Entrar
+                </>
               )}
-              {loading ? "Entrando..." : "Entrar"}
             </button>
           </div>
         </form>
@@ -112,3 +125,5 @@ const LoginPage = () => {
 };
 
 export default LoginPage;
+
+```
