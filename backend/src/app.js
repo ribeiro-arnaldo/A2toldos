@@ -15,11 +15,13 @@ const clientesRoutes = require('./routes/clientes.js');
 const orcamentosRoutes = require('./routes/orcamentos.js');
 const authRoutes = require('./routes/auth.js');
 const usuarioRoutes = require('./routes/usuario.js');
-app.use('/usuarios', usuarioRoutes);
+const dashboardRoutes = require('./routes/dashboard');
 
+app.use('/usuarios', usuarioRoutes);
 app.use('/clientes', clientesRoutes);
 app.use('/orcamentos', orcamentosRoutes);
 app.use('/auth', authRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 app.get('/', (req, res) => {
   res.send('API funcionando! 🚀');

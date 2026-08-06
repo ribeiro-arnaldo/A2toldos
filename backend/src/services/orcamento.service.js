@@ -28,7 +28,8 @@ const dbAll = (sql, params = []) => {
 class OrcamentoService {
 
   async create(orcamentoData) {
-    const { cliente_id, descricao, prazo_entrega, itens } = orcamentoData;
+    // Adicionado data_instalacao aqui
+    const { cliente_id, descricao, prazo_entrega, data_instalacao, itens } = orcamentoData;
 
     const valor_total_calculado = itens.reduce((acc, item) => {
       return acc + (item.largura * item.comprimento * item.preco_m2);
@@ -52,11 +53,12 @@ class OrcamentoService {
       const numero_formatado = String(proximo_numero).padStart(4, '0');
       const numero_orcamento = `${numero_formatado}/${ano_atual}`;
 
-      const orcamentoQuery = `INSERT INTO orcamentos (cliente_id, descricao, valor_total, data_orcamento, prazo_entrega, numero_orcamento) VALUES (?, ?, ?, ?, ?, ?)`;
-      const result = await dbRun(orcamentoQuery, [cliente_id, descricao, valor_total_calculado, data_orcamento, prazo_entrega, numero_orcamento]);
+      // Inserindo a data_instalacao no banco
+      const orcamentoQuery = `INSERT INTO orcamentos (cliente_id, descricao, valor_total, data_orcamento, prazo_entrega, data_instalacao, numero_orcamento) VALUES (?, ?, ?, ?, ?, ?, ?)`;
+      const result = await dbRun(orcamentoQuery, [cliente_id, descricao, valor_total_calculado, data_orcamento, prazo_entrega, data_instalacao, numero_orcamento]);
       const orcamento_id = result.lastID;
 
-      const itemQuery = `INSERT INTO itens_orcamento (orcamento_id, descricao_item, cor, observacoes, largura, comprimento, preco_m2, valor_item, material) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`; // Adicionado 'material'
+      const itemQuery = `INSERT INTO itens_orcamento (orcamento_id, descricao_item, cor, observacoes, largura, comprimento, preco_m2, valor_item, material) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`;
     for (const item of itens) {
       const valor_item = item.largura * item.comprimento * item.preco_m2;
       await dbRun(itemQuery, [orcamento_id, item.descricao_item, item.cor, item.observacoes, item.largura, item.comprimento, item.preco_m2, valor_item, item.material]);
@@ -74,7 +76,7 @@ class OrcamentoService {
 
   async listAll(filtros) {
     let query = `
-      SELECT o.id, o.numero_orcamento, o.descricao, o.valor_total, o.data_orcamento, o.prazo_entrega, o.status, c.nome as nome_cliente
+      SELECT o.id, o.numero_orcamento, o.descricao, o.valor_total, o.data_orcamento, o.prazo_entrega, o.data_instalacao, o.status, c.nome as nome_cliente
       FROM orcamentos o
       JOIN clientes c ON o.cliente_id = c.id
       WHERE 1=1
@@ -98,7 +100,8 @@ class OrcamentoService {
       params.push(filtros.status);
     }
     
-    const countQuery = query.replace(/SELECT o\.id, o\.numero_orcamento, o\.descricao, o\.valor_total, o\.data_orcamento, o\.status, c\.nome as nome_cliente/, 'SELECT COUNT(o.id) as total');
+    // Expressão regular corrigida para funcionar com segurança, não importa quantos campos existam no SELECT
+    const countQuery = query.replace(/^[\s\S]*?FROM/, 'SELECT COUNT(o.id) as total FROM');
     
     const countResult = await dbGet(countQuery, params);
     const total = countResult ? countResult.total : 0;
@@ -138,7 +141,8 @@ class OrcamentoService {
   } 
   
   async update(id, orcamentoData) {
-    const { cliente_id, descricao, prazo_entrega, itens } = orcamentoData;
+    // Adicionado data_instalacao aqui
+    const { cliente_id, descricao, prazo_entrega, data_instalacao, itens } = orcamentoData;
 
     const valor_total_calculado = itens.reduce((acc, item) => {
         return acc + (item.largura * item.comprimento * item.preco_m2);
@@ -148,14 +152,15 @@ class OrcamentoService {
     try {
         await dbRun('DELETE FROM itens_orcamento WHERE orcamento_id = ?', [id]);
         
-        const updateQuery = `UPDATE orcamentos SET cliente_id = ?, descricao = ?, valor_total = ?, prazo_entrega = ? WHERE id = ?`;
-        const result = await dbRun(updateQuery, [cliente_id, descricao, valor_total_calculado, prazo_entrega, id]);
+        // Atualizando a query para incluir data_instalacao
+        const updateQuery = `UPDATE orcamentos SET cliente_id = ?, descricao = ?, valor_total = ?, prazo_entrega = ?, data_instalacao = ? WHERE id = ?`;
+        const result = await dbRun(updateQuery, [cliente_id, descricao, valor_total_calculado, prazo_entrega, data_instalacao, id]);
 
         if (result.changes === 0) {
             throw new Error('Orçamento não encontrado para atualização.');
         }
 
-        const itemQuery = `INSERT INTO itens_orcamento (orcamento_id, descricao_item, cor, observacoes, largura, comprimento, preco_m2, valor_item, material) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`; // Adicionado 'material'
+        const itemQuery = `INSERT INTO itens_orcamento (orcamento_id, descricao_item, cor, observacoes, largura, comprimento, preco_m2, valor_item, material) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`;
     for (const item of itens) {
         const valor_item = item.largura * item.comprimento * item.preco_m2; 
         await dbRun(itemQuery, [id, item.descricao_item, item.cor, item.observacoes, item.largura, item.comprimento, item.preco_m2, valor_item, item.material]);
@@ -170,13 +175,23 @@ class OrcamentoService {
     }
   }
 
-  async updateStatus(id, status) {
+  async updateStatus(id, status, data_instalacao = null) {
     const statusPermitidos = ['PENDENTE', 'APROVADO', 'REPROVADO', 'EM PRODUCAO', 'CONCLUIDO', 'ENTREGUE'];
     if (!status || !statusPermitidos.includes(status.toUpperCase())) {
       throw new Error('Status inválido ou não fornecido.');
     }
-    const query = `UPDATE orcamentos SET status = ? WHERE id = ?`;
-    const result = await dbRun(query, [status.toUpperCase(), id]);
+        
+    let query = `UPDATE orcamentos SET status = ?`;
+    const params = [status.toUpperCase()];
+
+    if (data_instalacao !== null) {
+        query += `, data_instalacao = ?`;
+        params.push(data_instalacao);
+    }
+    query += ` WHERE id = ?`;
+    params.push(id);
+
+    const result = await dbRun(query, params);
     if (result.changes === 0) {
         throw new Error('Orçamento não encontrado.');
     }

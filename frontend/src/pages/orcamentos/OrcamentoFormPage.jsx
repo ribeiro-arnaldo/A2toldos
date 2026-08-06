@@ -11,6 +11,8 @@ const OrcamentoFormPage = () => {
   const [clienteSelecionado, setClienteSelecionado] = useState(null);
   const [descricao, setDescricao] = useState("");
   const [prazoEntrega, setPrazoEntrega] = useState(''); 
+  // NOVA VARIÁVEL: Data de Instalação
+  const [dataInstalacao, setDataInstalacao] = useState(''); 
   const [itens, setItens] = useState([{ id: null, descricao_item: '', cor: '', observacoes: '', largura: '', comprimento: '', preco_m2: '', subtotal: 0 }]);
   
   const [loading, setLoading] = useState(false);
@@ -24,14 +26,25 @@ const OrcamentoFormPage = () => {
     const newErrors = {};
     if (!clienteSelecionado) newErrors.cliente_id = "A seleção de um cliente é obrigatória.";
     if (!descricao.trim()) newErrors.descricao = "A descrição geral é obrigatória.";
+    
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+
     if (prazoEntrega) {
-      const hoje = new Date();
-      hoje.setHours(0, 0, 0, 0);
       const dataPrazo = new Date(prazoEntrega + 'T00:00:00');
       if (dataPrazo < hoje) {
         newErrors.prazo_entrega = 'O prazo não pode ser no passado.';
       }
     }
+
+    // Validação opcional: se informar a data de instalação, garantir que não seja no passado
+    if (dataInstalacao) {
+      const dataInst = new Date(dataInstalacao + 'T00:00:00');
+      if (dataInst < hoje) {
+        newErrors.data_instalacao = 'A instalação não pode ser no passado.';
+      }
+    }
+
     const itensErrors = [];
     itens.forEach((item, index) => {
       const itemError = {};
@@ -55,10 +68,13 @@ const OrcamentoFormPage = () => {
       return;
     }
     setLoading(true);
+    
+    // PAYLOAD ATUALIZADO
     const payload = {
       cliente_id: clienteSelecionado.id,
       descricao: descricao,
       prazo_entrega: prazoEntrega || null,
+      data_instalacao: dataInstalacao || null, // Enviando a nova data para o backend
       itens: itens.map((item) => ({
         descricao_item: item.descricao_item,
         cor: item.cor,
@@ -68,6 +84,7 @@ const OrcamentoFormPage = () => {
         preco_m2: parseFloat(item.preco_m2),
       })),
     };
+
     try {
       await api.post("/orcamentos", payload);
       toast.success("Orçamento cadastrado com sucesso!");
@@ -92,11 +109,14 @@ const OrcamentoFormPage = () => {
         Criar Novo Orçamento
       </h1>
       <form onSubmit={handleSubmit} className="bg-white p-8 rounded-lg shadow-lg" noValidate>
+        
+        {/* Passando os novos estados para o componente que desenha a tela */}
         <OrcamentoForm
-          formData={{ clienteSelecionado, descricao, prazo_entrega: prazoEntrega, itens }}
-          setFormData={{ setClienteSelecionado, setDescricao, setPrazoEntrega, setItens }}
+          formData={{ clienteSelecionado, descricao, prazo_entrega: prazoEntrega, data_instalacao: dataInstalacao, itens }}
+          setFormData={{ setClienteSelecionado, setDescricao, setPrazoEntrega, setDataInstalacao, setItens }}
           errors={errors}
         />
+
         {errors.api && (
           <div className="p-3 my-4 text-center text-sm text-red-800 bg-red-100 rounded-lg">
             {errors.api}

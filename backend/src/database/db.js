@@ -28,9 +28,15 @@ db.serialize(() => {
       data_orcamento TEXT NOT NULL,
       prazo_entrega TEXT,
       status TEXT NOT NULL DEFAULT 'PENDENTE',
+      data_instalacao TEXT,
+      categoria_servico TEXT,
       FOREIGN KEY (cliente_id) REFERENCES clientes (id) ON DELETE CASCADE
     )
   `);
+
+  // Adiciona colunas caso o banco já exista e elas não estejam lá
+  db.run('ALTER TABLE orcamentos ADD COLUMN data_instalacao TEXT', (err) => {});
+  db.run('ALTER TABLE orcamentos ADD COLUMN categoria_servico TEXT', (err) => {});
 
   db.run(`
     CREATE TABLE IF NOT EXISTS itens_orcamento (

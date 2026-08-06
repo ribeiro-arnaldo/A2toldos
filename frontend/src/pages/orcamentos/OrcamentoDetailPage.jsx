@@ -19,10 +19,13 @@ const OrcamentoDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { usuario } = useAuth();
+  
   const [orcamento, setOrcamento] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
   const [novoStatus, setNovoStatus] = useState("");
+  const [novaDataInstalacao, setNovaDataInstalacao] = useState("");
   const [loadingStatus, setLoadingStatus] = useState(false);
 
   useEffect(() => {
@@ -32,6 +35,7 @@ const OrcamentoDetailPage = () => {
         const response = await api.get(`/orcamentos/${id}`);
         setOrcamento(response.data);
         setNovoStatus(response.data.status);
+        setNovaDataInstalacao(response.data.data_instalacao || "");
       } catch (err) {
         const errorMessage =
           err.response?.data?.erro ||
@@ -46,12 +50,31 @@ const OrcamentoDetailPage = () => {
     fetchOrcamento();
   }, [id]);
 
+  // Regras de validação de status e obrigatoriedade da data
+  const statusUpper = novoStatus ? novoStatus.toUpperCase() : "";
+  const isConcluido = statusUpper === "CONCLUIDO";
+  const isDataObrigatoriaFaltando = isConcluido && !novaDataInstalacao;
+  const precisaDeData = ["EM PRODUCAO", "CONCLUIDO"].includes(statusUpper);
+
   const handleStatusUpdate = async () => {
+    if (isDataObrigatoriaFaltando) {
+      toast.error("Para marcar como Concluído, a Data de Instalação é obrigatória!");
+      return;
+    }
+
     setLoadingStatus(true);
     try {
-      await api.patch(`/orcamentos/${id}/status`, { status: novoStatus });
+      await api.patch(`/orcamentos/${id}/status`, { 
+        status: novoStatus,
+        data_instalacao: novaDataInstalacao || null
+      });
+      
       toast.success("Status atualizado com sucesso!");
-      setOrcamento((prev) => ({ ...prev, status: novoStatus }));
+      setOrcamento((prev) => ({ 
+        ...prev, 
+        status: novoStatus,
+        data_instalacao: novaDataInstalacao 
+      }));
     } catch (error) {
       const errorMessage =
         error.response?.data?.erro || "Falha ao atualizar o status.";
@@ -116,11 +139,11 @@ const OrcamentoDetailPage = () => {
           <h3 className="text-lg font-semibold text-gray-700 mb-2">
             Alterar Status
           </h3>
-          <div className="flex items-center space-x-3">
+          <div className="flex flex-col md:flex-row items-start md:items-center space-y-3 md:space-y-0 md:space-x-3 w-full">
             <select
               value={novoStatus}
               onChange={(e) => setNovoStatus(e.target.value)}
-              className="flex-grow block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-brand-yellow focus:border-brand-yellow"
+              className="w-full md:w-1/3 px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-brand-yellow focus:border-brand-yellow"
             >
               <option value="PENDENTE">Pendente</option>
               <option value="APROVADO">Aprovado</option>
@@ -129,24 +152,59 @@ const OrcamentoDetailPage = () => {
               <option value="CONCLUIDO">Concluído</option>
               <option value="ENTREGUE">Entregue</option>
             </select>
+
+            {/* Renderização Condicional do Calendário com a Label "Instalação:" */}
+            {precisaDeData && (
+              <div className="w-full md:w-1/3 flex items-center space-x-2">
+                <span className="text-sm font-bold text-gray-700 whitespace-nowrap">Instalação:</span>
+                <input
+                  type="date"
+                  value={novaDataInstalacao}
+                  onChange={(e) => setNovaDataInstalacao(e.target.value)}
+                  className={`w-full px-3 py-2 bg-white border rounded-md shadow-sm focus:outline-none focus:ring-brand-yellow focus:border-brand-yellow ${
+                    isDataObrigatoriaFaltando ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                  title="Data de Instalação"
+                />
+              </div>
+            )}
+
             <button
               onClick={handleStatusUpdate}
-              disabled={loadingStatus || novoStatus === orcamento.status}
-              className="bg-brand-blue text-white font-bold py-2 px-4 rounded-lg flex items-center hover:bg-opacity-90 transition-colors disabled:bg-gray-400"
+              disabled={
+                loadingStatus || 
+                (novoStatus === orcamento.status && novaDataInstalacao === (orcamento.data_instalacao || "")) ||
+                isDataObrigatoriaFaltando
+              }
+              className="w-full md:w-auto bg-brand-blue text-white font-bold py-2 px-6 rounded-lg flex items-center justify-center hover:bg-opacity-90 transition-colors disabled:bg-gray-400"
             >
               <FiSave className="mr-2" />
               {loadingStatus ? "Salvando..." : "Salvar"}
             </button>
           </div>
+          
+          {precisaDeData && !isDataObrigatoriaFaltando && (
+            <p className="text-xs text-gray-500 mt-2">
+              * Confirme ou altere a Data de Instalação para refletir no Painel.
+            </p>
+          )}
+          {isDataObrigatoriaFaltando && (
+            <p className="text-xs text-red-600 font-bold mt-2">
+              * Para marcar como Concluído, a Data de Instalação é obrigatória.
+            </p>
+          )}
         </div>
 
         <div className="border-t border-gray-200 mt-6 pt-4">
-          <div className="hidden md:grid grid-cols-1 md:grid-cols-3 gap-4 text-gray-700">
+          <div className="hidden md:grid grid-cols-1 md:grid-cols-4 gap-4 text-gray-700">
             <p>
               <strong>Cliente:</strong> {orcamento.nome_cliente}
             </p>
             <p>
-              <strong>Data:</strong> {formatDate(orcamento.data_orcamento)}
+              <strong>Data Criação:</strong> {formatDate(orcamento.data_orcamento)}
+            </p>
+            <p>
+              <strong>Instalação:</strong> {orcamento.data_instalacao ? formatDate(orcamento.data_instalacao) : 'A definir'}
             </p>
             <p className="text-xl font-bold">
               <strong>Valor Total:</strong>{" "}
@@ -160,9 +218,14 @@ const OrcamentoDetailPage = () => {
               {orcamento.nome_cliente}
             </p>
             <p>
-              <strong>Data:</strong>
+              <strong>Data Criação:</strong>
               <br />
               {formatDate(orcamento.data_orcamento)}
+            </p>
+            <p>
+              <strong>Instalação:</strong>
+              <br />
+              {orcamento.data_instalacao ? formatDate(orcamento.data_instalacao) : 'A definir'}
             </p>
             <p className="text-xl font-bold">
               <strong>Valor Total:</strong>
@@ -178,7 +241,6 @@ const OrcamentoDetailPage = () => {
         </div>
       </div>
 
-      {/* --- CÓDIGO QUE ESTAVA FALTANDO --- */}
       <div className="bg-white p-6 rounded-lg shadow-lg">
         <h2 className="text-2xl font-semibold text-gray-700 mb-4 flex items-center">
           <FiGrid className="mr-2" />

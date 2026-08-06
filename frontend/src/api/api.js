@@ -1,9 +1,8 @@
 import axios from 'axios';
-// O toast não é mais necessário aqui
-// import toast from 'react-hot-toast'; 
 
 const api = axios.create({
-  baseURL: 'https://a2toldos-backend.onrender.com',
+baseURL: 'https://a2toldos-backend.onrender.com',
+ //baseURL: 'http://localhost:3000',
 });
 
 api.interceptors.request.use(async (config) => {

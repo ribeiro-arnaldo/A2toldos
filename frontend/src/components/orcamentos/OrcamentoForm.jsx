@@ -9,8 +9,8 @@ import {
 import api from "../../api/api";
 
 const OrcamentoForm = ({ formData, setFormData, errors }) => {
-  const { clienteSelecionado, descricao, prazo_entrega, itens } = formData;
-  const { setClienteSelecionado, setDescricao, setPrazoEntrega, setItens } =
+  const { clienteSelecionado, descricao, prazo_entrega, data_instalacao, itens } = formData;
+  const { setClienteSelecionado, setDescricao, setPrazoEntrega, setDataInstalacao, setItens } =
     setFormData;
 
   const [termoBuscaCliente, setTermoBuscaCliente] = useState("");
@@ -124,12 +124,15 @@ const OrcamentoForm = ({ formData, setFormData, errors }) => {
 
   return (
     <div className="space-y-6">
+      
+      {/* SESSÃO: DADOS GERAIS */}
       <div className="p-4 border rounded-lg">
         <h2 className="text-xl font-semibold text-gray-700 mb-4 flex items-center">
           <FiUser className="mr-2" />
           Dados Gerais
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="relative">
             <label
               htmlFor="cliente_busca"
@@ -181,6 +184,7 @@ const OrcamentoForm = ({ formData, setFormData, errors }) => {
               <p className="mt-1 text-sm text-red-600">{errors.cliente_id}</p>
             )}
           </div>
+          
           <div>
             <label
               htmlFor="descricao"
@@ -203,12 +207,13 @@ const OrcamentoForm = ({ formData, setFormData, errors }) => {
               <p className="mt-1 text-sm text-red-600">{errors.descricao}</p>
             )}
           </div>
+          
           <div>
             <label
               htmlFor="prazo_entrega"
               className="block text-sm font-medium text-gray-700"
             >
-              Prazo de Entrega
+              Prazo Máximo para Entrega
             </label>
             <input
               type="date"
@@ -226,8 +231,37 @@ const OrcamentoForm = ({ formData, setFormData, errors }) => {
               </p>
             )}
           </div>
+
+          <div>
+            <label
+              htmlFor="data_instalacao"
+              className="block text-sm font-medium text-gray-700"
+            >
+              Data de Instalação
+            </label>
+            <input
+              type="date"
+              id="data_instalacao"
+              name="data_instalacao"
+              value={data_instalacao || ""}
+              onChange={(e) => setDataInstalacao(e.target.value)}
+              className={`${formInputStyle} ${
+                errors.data_instalacao ? "border-red-500" : ""
+              }`}
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              *Preencher quando for para Produção.
+            </p>
+            {errors.data_instalacao && (
+              <p className="mt-1 text-sm text-red-600">
+                {errors.data_instalacao}
+              </p>
+            )}
+          </div>
         </div>
       </div>
+
+      {/* SESSÃO: ITENS DO ORÇAMENTO */}
       <div className="p-4 border rounded-lg">
         <h2 className="text-xl font-semibold text-gray-700 mb-4 flex items-center">
           <FiList className="mr-2" /> Itens do Orçamento
@@ -241,6 +275,7 @@ const OrcamentoForm = ({ formData, setFormData, errors }) => {
               <div className="col-span-12 sm:col-span-1 pt-8 font-bold text-lg text-gray-500 text-center">
                 {index + 1}.
               </div>
+              
               <div className="col-span-12 sm:col-span-6 md:col-span-4">
                 <label className="block text-sm font-medium text-gray-700">
                   Descrição do Item*
@@ -263,6 +298,7 @@ const OrcamentoForm = ({ formData, setFormData, errors }) => {
                   </p>
                 )}
               </div>
+              
               <div className="col-span-12 sm:col-span-5 md:col-span-3">
                 <label className="block text-sm font-medium text-gray-700">
                   Tipo de Material
@@ -276,6 +312,7 @@ const OrcamentoForm = ({ formData, setFormData, errors }) => {
                   placeholder="Ex: Lona PVC"
                 />
               </div>
+              
               <div className="col-span-12 sm:col-span-5 md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700">
                   Cor
@@ -289,6 +326,7 @@ const OrcamentoForm = ({ formData, setFormData, errors }) => {
                   placeholder="Ex: Azul"
                 />
               </div>
+              
               <div className="col-span-12 md:col-span-6 grid grid-cols-3 gap-x-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
@@ -351,6 +389,7 @@ const OrcamentoForm = ({ formData, setFormData, errors }) => {
                   )}
                 </div>
               </div>
+              
               <div className="col-span-12 md:col-span-5">
                 <label className="block text-sm font-medium text-gray-700">
                   Observações
@@ -364,6 +403,7 @@ const OrcamentoForm = ({ formData, setFormData, errors }) => {
                   placeholder="Ex: Com braço articulado"
                 />
               </div>
+              
               <div className="col-span-12 md:col-span-2 flex items-end justify-between">
                 <div className="w-full">
                   <label className="block text-sm font-medium text-gray-700">

@@ -57,7 +57,7 @@ class OrcamentoController {
 
   async updateStatus(req, res) {
     try {
-      const resultado = await orcamentoService.updateStatus(req.params.id, req.body.status);
+      const resultado = await orcamentoService.updateStatus(req.params.id, req.body.status, req.body.data_instalacao);
       res.status(200).json(resultado);
     } catch (error)
     {

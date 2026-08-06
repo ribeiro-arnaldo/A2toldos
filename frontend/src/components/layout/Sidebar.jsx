@@ -32,7 +32,7 @@ const Sidebar = ({
       ></div>
 
       <div
-        className={`w-64 h-screen bg-brand-blue text-white flex flex-col shadow-lg fixed top-0 left-0 z-20 transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${
+        className={`w-64 h-[100dvh] md:h-screen bg-brand-blue text-white flex flex-col shadow-lg fixed top-0 left-0 z-20 transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${
           isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -45,7 +45,9 @@ const Sidebar = ({
             />
           </NavLink>
         </div>
-        <nav className="flex-grow p-4">
+        
+        {/* Adicionado overflow-y-auto aqui para rolar os itens se a tela do celular for pequena */}
+        <nav className="flex-grow p-4 overflow-y-auto">
           <ul>
             {usuarioLogado?.perfil !== "VENDEDOR" && (
               <li className="mb-2">
@@ -76,6 +78,7 @@ const Sidebar = ({
                 Clientes
               </NavLink>
             </li>
+            
             <li className="mb-2">
               <NavLink
                 to="/orcamentos"
@@ -89,6 +92,7 @@ const Sidebar = ({
                 Orçamentos
               </NavLink>
             </li>
+            
             {usuarioLogado?.perfil === "ADM_FULL" && (
               <li className="mb-2">
                 <NavLink
@@ -106,7 +110,9 @@ const Sidebar = ({
             )}
           </ul>
         </nav>
-        <div className="p-6 border-t border-blue-700">
+        
+        {/* Adicionado padding extra embaixo (pb-8) para desgrudar o botão da borda no mobile */}
+        <div className="p-4 pb-8 md:p-6 md:pb-6 border-t border-blue-700">
           <button
             onClick={onLogout}
             className="w-full flex items-center p-3 rounded-lg hover:bg-red-600 transition-colors"
