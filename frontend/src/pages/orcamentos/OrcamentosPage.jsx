@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react"; // Adicione useCallback
+import React, { useState, useEffect, useCallback } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   FiFileText,
@@ -14,16 +14,33 @@ import api from "../../api/api";
 import Pagination from "../../components/common/Pagination";
 import StatusBadge from "../../components/common/StatusBadge";
 import ConfirmationModal from "../../components/common/ConfirmationModal";
-import { formatDate, formatCurrency } from "../../utils/formatters"; // Importe seus formatadores
+import { formatDate, formatCurrency } from "../../utils/formatters"; 
+
+// 1. Função auxiliar para mapear o texto do Dashboard para o valor do select
+const mapDashboardStatus = (statusDashboard) => {
+  switch (statusDashboard) {
+    case "Pendentes": return "PENDENTE";
+    case "Aprovados": return "APROVADO"; // <-- NOVA LINHA ADICIONADA AQUI
+    case "Em Produção": return "EM PRODUCAO";
+    case "Concluídos": return "CONCLUIDO"; 
+    case "Entregues": return "ENTREGUE";
+    case "Atrasados": return "ATRASADO"; 
+    default: return "TODOS";
+  }
+};
 
 const OrcamentosPage = () => {
-  // O estado de orçamentos agora vive aqui.
-  const [orcamentos, setOrcamentos] = useState([]);
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // 2. Inicializar o status lendo a variável vinda do Dashboard
   const [filtros, setFiltros] = useState({
     numero_orcamento: "",
     nome_cliente: "",
-    status: "TODOS",
+    status: location.state?.filtroStatus ? mapDashboardStatus(location.state.filtroStatus) : "TODOS",
   });
+  
+  const [orcamentos, setOrcamentos] = useState([]);
   const [buscaRealizada, setBuscaRealizada] = useState(false);
   const [dadosPaginacao, setDadosPaginacao] = useState({
     pagina: 1,
@@ -31,8 +48,6 @@ const OrcamentosPage = () => {
     total: 0,
   });
 
-  const location = useLocation();
-  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [orcamentoParaApagar, setOrcamentoParaApagar] = useState(null);
@@ -66,12 +81,14 @@ const OrcamentosPage = () => {
     [buscaRealizada, dadosPaginacao.limite, filtros]
   );
 
+  // 3. Modificamos o useEffect para buscar automaticamente se houver filtro do Dashboard
   useEffect(() => {
-    if (location.state?.refresh) {
+    if (location.state?.refresh || location.state?.filtroStatus) {
       handleSearch(1);
+      // Remove o state da rota para não refazer a busca sozinho caso dê F5
       navigate(location.pathname, { replace: true });
     }
-  }, [location, navigate, handleSearch]);
+  }, [location.state, navigate, handleSearch]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -183,6 +200,8 @@ const OrcamentosPage = () => {
                 <option value="EM PRODUCAO">Em Produção</option>
                 <option value="CONCLUIDO">Concluído</option>
                 <option value="ENTREGUE">Entregue</option>
+                {/* Adicionada a opção ATRASADO para suportar o filtro do Dashboard */}
+                <option value="ATRASADO">Atrasado</option> 
               </select>
             </div>
           </div>

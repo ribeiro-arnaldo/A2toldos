@@ -6,23 +6,25 @@ const getDashboardData = (req, res) => {
   const anoAtual = dataAtual.getFullYear();
   const mesAnoFiltro = `${anoAtual}-${mesAtual}`;
 
-  // 1. Contadores operacionais gerais (NOVO: Somando os ENTREGUES)
+  // 1. Contadores operacionais gerais (separando Aprovados, Em Produção e Concluídos)
   const queryStatus = `
     SELECT 
-      SUM(CASE WHEN status = 'PENDENTE' THEN 1 ELSE 0 END) as pendentes,
-      SUM(CASE WHEN status IN ('APROVADO', 'EM_PRODUCAO', 'EM PRODUCAO') THEN 1 ELSE 0 END) as emProducao,
-      SUM(CASE WHEN status IN ('APROVADO', 'EM_PRODUCAO', 'EM PRODUCAO', 'CONCLUIDO') AND data_instalacao < date('now') THEN 1 ELSE 0 END) as atrasados,
-      SUM(CASE WHEN status = 'ENTREGUE' THEN 1 ELSE 0 END) as entregues
+      SUM(CASE WHEN status IN ('PENDENTE', 'Pendente') THEN 1 ELSE 0 END) as pendentes,
+      SUM(CASE WHEN status IN ('APROVADO', 'Aprovado') THEN 1 ELSE 0 END) as aprovados,
+      SUM(CASE WHEN status IN ('EM_PRODUCAO', 'EM PRODUCAO', 'Em Produção') THEN 1 ELSE 0 END) as emProducao,
+      SUM(CASE WHEN status IN ('CONCLUIDO', 'Concluído', 'CONCLUÍDO') THEN 1 ELSE 0 END) as concluidos,
+      SUM(CASE WHEN status IN ('APROVADO', 'Aprovado', 'EM_PRODUCAO', 'EM PRODUCAO', 'Em Produção', 'CONCLUIDO', 'Concluído', 'CONCLUÍDO') AND prazo_entrega < date('now', 'localtime') THEN 1 ELSE 0 END) as atrasados,
+      SUM(CASE WHEN status IN ('ENTREGUE', 'Entregue') THEN 1 ELSE 0 END) as entregues
     FROM orcamentos
   `;
 
-  // 2. Financeiro Inteligente (Calcula o total de orçamentos e as vendas fechadas)
+  // 2. Financeiro Inteligente
   const queryFinanceiro = `
     SELECT 
-      COALESCE(SUM(CASE WHEN status IN ('APROVADO', 'EM_PRODUCAO', 'EM PRODUCAO', 'CONCLUIDO', 'ENTREGUE') THEN valor_total ELSE 0 END), 0) as faturamentoMes,
-      SUM(CASE WHEN status IN ('APROVADO', 'EM_PRODUCAO', 'EM PRODUCAO', 'CONCLUIDO', 'ENTREGUE') THEN 1 ELSE 0 END) as vendasFechadas,
+      COALESCE(SUM(CASE WHEN status IN ('APROVADO', 'Aprovado', 'EM_PRODUCAO', 'EM PRODUCAO', 'Em Produção', 'CONCLUIDO', 'Concluído', 'CONCLUÍDO', 'ENTREGUE', 'Entregue') THEN valor_total ELSE 0 END), 0) as faturamentoMes,
+      SUM(CASE WHEN status IN ('APROVADO', 'Aprovado', 'EM_PRODUCAO', 'EM PRODUCAO', 'Em Produção', 'CONCLUIDO', 'Concluído', 'CONCLUÍDO', 'ENTREGUE', 'Entregue') THEN 1 ELSE 0 END) as vendasFechadas,
       COUNT(id) as totalOrcamentosMes,
-      COALESCE(AVG(CASE WHEN status IN ('APROVADO', 'EM_PRODUCAO', 'EM PRODUCAO', 'CONCLUIDO', 'ENTREGUE') THEN valor_total ELSE NULL END), 0) as ticketMedio
+      COALESCE(AVG(CASE WHEN status IN ('APROVADO', 'Aprovado', 'EM_PRODUCAO', 'EM PRODUCAO', 'Em Produção', 'CONCLUIDO', 'Concluído', 'CONCLUÍDO', 'ENTREGUE', 'Entregue') THEN valor_total ELSE NULL END), 0) as ticketMedio
     FROM orcamentos
     WHERE strftime('%Y-%m', data_orcamento) = ?
   `;
@@ -36,13 +38,13 @@ const getDashboardData = (req, res) => {
     LIMIT 5
   `;
 
-  // 4. Agenda (Com o CONCLUIDO incluído)
+  // 4. Agenda
   const queryAgenda = `
     SELECT O.id, C.nome as cliente, O.data_instalacao, C.endereco as bairro
     FROM orcamentos O
     JOIN clientes C ON O.cliente_id = C.id
     WHERE O.data_instalacao >= date('now')
-    AND O.status IN ('APROVADO', 'EM_PRODUCAO', 'EM PRODUCAO', 'CONCLUIDO')
+    AND O.status IN ('APROVADO', 'Aprovado', 'EM_PRODUCAO', 'EM PRODUCAO', 'Em Produção', 'CONCLUIDO', 'Concluído', 'CONCLUÍDO')
     ORDER BY O.data_instalacao ASC
     LIMIT 3
   `;
@@ -52,7 +54,7 @@ const getDashboardData = (req, res) => {
     SELECT categoria_servico as nome, COUNT(id) as qtd
     FROM orcamentos
     WHERE categoria_servico IS NOT NULL
-    AND status IN ('APROVADO', 'CONCLUIDO', 'ENTREGUE')
+    AND status IN ('APROVADO', 'Aprovado', 'CONCLUIDO', 'Concluído', 'CONCLUÍDO', 'ENTREGUE', 'Entregue')
     GROUP BY categoria_servico
     ORDER BY qtd DESC
     LIMIT 3
@@ -68,7 +70,10 @@ const getDashboardData = (req, res) => {
         if (err) return res.status(500).json({ error: err.message });
 
         db.all(queryAgenda, [], (err, agendaRes) => {
+          if (err) return res.status(500).json({ error: err.message });
+
           db.all(queryRanking, [], (err, rankingRes) => {
+            if (err) return res.status(500).json({ error: err.message });
             
             // --- CÁLCULO DA TAXA DE CONVERSÃO ---
             const vendas = finRes.vendasFechadas || 0;
@@ -85,16 +90,17 @@ const getDashboardData = (req, res) => {
                 vendasFechadas: vendas,
                 ticketMedio: finRes.ticketMedio,
                 taxaConversao: `${taxaConversaoNum}%`,
-                pendentes: statusRes.pendentes || 0,
-                emProducao: statusRes.emProducao || 0,
-                atrasados: statusRes.atrasados || 0,
-                entregues: statusRes.entregues || 0, // ENVIANDO PARA O FRONTEND
+                pendentes: statusRes?.pendentes || 0,
+                aprovados: statusRes?.aprovados || 0,
+                emProducao: statusRes?.emProducao || 0,
+                concluidos: statusRes?.concluidos || 0,
+                atrasados: statusRes?.atrasados || 0,
+                entregues: statusRes?.entregues || 0,
               },
               orcamentosRecentes: recentesRes || [],
               agendaInstalacoes: agendaRes || [],
               rankingServicos: rankingRes || []
             });
-
           });
         });
       });

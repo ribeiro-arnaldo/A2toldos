@@ -96,11 +96,18 @@ class OrcamentoService {
       params.push(`%${filtros.nome_cliente}%`);
     }
     if (filtros && filtros.status && filtros.status !== 'TODOS') {
-      query += ' AND o.status = ?';
-      params.push(filtros.status);
+      if (filtros.status === 'ATRASADO') {
+        const hoje = new Date().toISOString().split('T')[0];
+        
+        query += " AND o.status IN ('APROVADO', 'EM PRODUCAO') AND o.prazo_entrega < ?";
+        params.push(hoje);
+      } else {
+        // Busca normal para os outros status
+        query += ' AND o.status = ?';
+        params.push(filtros.status);
+      }
     }
     
-    // Expressão regular corrigida para funcionar com segurança, não importa quantos campos existam no SELECT
     const countQuery = query.replace(/^[\s\S]*?FROM/, 'SELECT COUNT(o.id) as total FROM');
     
     const countResult = await dbGet(countQuery, params);

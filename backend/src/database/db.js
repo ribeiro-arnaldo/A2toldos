@@ -1,11 +1,43 @@
-const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
+// const { Pool } = require('pg'); // Comentado para a apresentação
+const sqlite3 = require('sqlite3').verbose();
 
+let db;
+
+/* 
+=========================================================
+ CÓDIGO DO POSTGRES (SUPABASE) - COMENTADO PARA APRESENTAÇÃO
+=========================================================
+if (process.env.DATABASE_URL) {
+  console.log("Conectando ao banco PostgreSQL (Supabase)...");
+  
+  db = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: {
+      rejectUnauthorized: false
+    }
+  });
+
+  db.connect((err, client, release) => {
+    if (err) {
+      console.error('Erro ao conectar ao PostgreSQL:', err.stack);
+    } else {
+      console.log('Conectado com sucesso ao PostgreSQL!');
+      release();
+    }
+  });
+} else { 
+*/
+
+// =========================================================
+// CÓDIGO DO SQLITE - ATIVO PARA A APRESENTAÇÃO
+// =========================================================
+console.log("Conectando ao banco SQLite local...");
 const dbPath = path.resolve(__dirname, 'database.db');
-const db = new sqlite3.Database(dbPath);
+const sqliteDb = new sqlite3.Database(dbPath);
 
-db.serialize(() => {
-  db.run(`
+sqliteDb.serialize(() => {
+  sqliteDb.run(`
     CREATE TABLE IF NOT EXISTS clientes (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       nome TEXT NOT NULL,
@@ -18,7 +50,7 @@ db.serialize(() => {
     )
   `);
 
-  db.run(`
+  sqliteDb.run(`
    CREATE TABLE IF NOT EXISTS orcamentos (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       numero_orcamento TEXT NOT NULL UNIQUE,
@@ -34,11 +66,10 @@ db.serialize(() => {
     )
   `);
 
-  // Adiciona colunas caso o banco já exista e elas não estejam lá
-  db.run('ALTER TABLE orcamentos ADD COLUMN data_instalacao TEXT', (err) => {});
-  db.run('ALTER TABLE orcamentos ADD COLUMN categoria_servico TEXT', (err) => {});
+  sqliteDb.run('ALTER TABLE orcamentos ADD COLUMN data_instalacao TEXT', (err) => {});
+  sqliteDb.run('ALTER TABLE orcamentos ADD COLUMN categoria_servico TEXT', (err) => {});
 
-  db.run(`
+  sqliteDb.run(`
     CREATE TABLE IF NOT EXISTS itens_orcamento (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       orcamento_id INTEGER NOT NULL,
@@ -53,13 +84,13 @@ db.serialize(() => {
     )
   `);
 
-  db.run('ALTER TABLE itens_orcamento ADD COLUMN material TEXT', (err) => {
+  sqliteDb.run('ALTER TABLE itens_orcamento ADD COLUMN material TEXT', (err) => {
     if (err && !err.message.includes('duplicate column name')) {
         console.error("Erro ao adicionar coluna 'material':", err.message);
     }
   });
 
-    db.run(`
+  sqliteDb.run(`
     CREATE TABLE IF NOT EXISTS usuarios (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       nome TEXT NOT NULL,
@@ -70,8 +101,12 @@ db.serialize(() => {
       reset_token_expires DATETIME
     )
   `);
-  db.run('ALTER TABLE usuarios ADD COLUMN reset_token TEXT', (err) => {});
-  db.run('ALTER TABLE usuarios ADD COLUMN reset_token_expires DATETIME', (err) => {});
+  sqliteDb.run('ALTER TABLE usuarios ADD COLUMN reset_token TEXT', (err) => {});
+  sqliteDb.run('ALTER TABLE usuarios ADD COLUMN reset_token_expires DATETIME', (err) => {});
 });
+
+db = sqliteDb;
+
+// } // Fim do bloco IF do Postgres comentado
 
 module.exports = db;

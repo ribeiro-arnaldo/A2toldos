@@ -18,9 +18,11 @@ const DashboardPage = () => {
     ticketMedio: "R$ 0,00",
     taxaConversao: "0%",
     pendentes: 0,
+    aprovados: 0,
     emProducao: 0,
+    concluidos: 0, 
     atrasados: 0,
-    entregues: 0, // NOVO ESTADO
+    entregues: 0,
   });
   const [orcamentosRecentes, setOrcamentosRecentes] = useState([]);
   const [agendaInstalacoes, setAgendaInstalacoes] = useState([]);
@@ -32,10 +34,15 @@ const DashboardPage = () => {
         setLoading(true);
         const response = await api.get('/api/dashboard');
         
-        setTotais(response.data.totais);
-        setOrcamentosRecentes(response.data.orcamentosRecentes);
-        setAgendaInstalacoes(response.data.agendaInstalacoes);
-        setRankingServicos(response.data.rankingServicos);
+        // Tratamento seguro para os dados do backend
+        setTotais({
+          ...response.data.totais,
+          concluidos: response.data.totais.concluidos ?? 0,
+          aprovados: response.data.totais.aprovados ?? 0,
+        });
+        setOrcamentosRecentes(response.data.orcamentosRecentes || []);
+        setAgendaInstalacoes(response.data.agendaInstalacoes || []);
+        setRankingServicos(response.data.rankingServicos || []);
       } catch (err) {
         console.error("Erro ao carregar dashboard:", err);
         setErro("Não foi possível carregar os dados do painel.");
@@ -51,7 +58,7 @@ const DashboardPage = () => {
     let colorClass = "";
     switch (status) {
       case "PENDENTE": case "Pendente": colorClass = "bg-yellow-500 text-white"; break;
-      case "APROVADO": case "Aprovado": colorClass = "bg-green-500 text-white"; break;
+      case "APROVADO": case "Aprovado": colorClass = "bg-emerald-500 text-white"; break;
       case "REPROVADO": case "Reprovado": colorClass = "bg-red-500 text-white"; break;
       case "EM_PRODUCAO": case "Em Produção": case "EM PRODUCAO": colorClass = "bg-blue-500 text-white"; break;
       case "CONCLUIDO": case "Concluído": colorClass = "bg-purple-500 text-white"; break;
@@ -60,14 +67,14 @@ const DashboardPage = () => {
       default: colorClass = "bg-gray-200 text-gray-800";
     }
     return (
-      <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${colorClass}`}>
+      <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase whitespace-nowrap ${colorClass}`}>
         {status}
       </span>
     );
   };
 
   const aoClicarNoCard = (filtro) => {
-    navigate('/orcamentos');
+    navigate('/orcamentos', { state: { filtroStatus: filtro } });
   };
 
   if (loading) {
@@ -127,7 +134,7 @@ const DashboardPage = () => {
               <div>
                 <p className="text-gray-500 text-xs font-bold uppercase tracking-wide">Faturamento</p>
                 <h3 className="text-2xl font-bold text-green-600 mt-1">
-                  {Number(totais.faturamentoMes).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                  {typeof totais.faturamentoMes === 'number' ? totais.faturamentoMes.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : totais.faturamentoMes}
                 </h3>
               </div>
               <div className="p-3 bg-green-50 rounded-full text-green-600">
@@ -165,7 +172,7 @@ const DashboardPage = () => {
               <div>
                 <p className="text-gray-500 text-xs font-bold uppercase tracking-wide">Ticket Médio</p>
                 <h3 className="text-2xl font-bold text-gray-800 mt-1">
-                  {Number(totais.ticketMedio).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                  {typeof totais.ticketMedio === 'number' ? totais.ticketMedio.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : totais.ticketMedio}
                 </h3>
               </div>
               <div className="p-3 bg-gray-100 rounded-full text-gray-600">
@@ -180,48 +187,70 @@ const DashboardPage = () => {
       {/* SESSÃO 2: STATUS OPERACIONAL */}
       <section>
         <h2 className="text-lg font-bold text-gray-700 mb-4 border-b pb-2">Acompanhamento da Fábrica</h2>
-        {/* Alterado para 4 colunas em telas grandes (lg:grid-cols-4) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div onClick={() => aoClicarNoCard('Pendentes')} className="bg-white rounded-lg shadow-md p-6 border-t-4 border-yellow-500 cursor-pointer transform transition-transform hover:scale-105">
+        
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          
+          <div onClick={() => aoClicarNoCard('Pendentes')} className="bg-white rounded-lg shadow-md p-5 border-t-4 border-yellow-500 cursor-pointer transform transition-transform hover:scale-105">
             <div className="flex justify-between items-center">
               <div>
-                <p className="text-gray-500 text-xs font-bold uppercase tracking-wide">Aguardando Resposta</p>
-                <h3 className="text-3xl font-bold text-gray-800 mt-2">{totais.pendentes}</h3>
+                <p className="text-gray-500 text-[10px] font-bold uppercase tracking-wide">Aguardando Resposta</p>
+                <h3 className="text-2xl font-bold text-gray-800 mt-1">{totais.pendentes}</h3>
               </div>
-              <div className="p-3 bg-yellow-100 rounded-full text-yellow-600"><FiClock size={28} /></div>
+              <div className="p-2 bg-yellow-100 rounded-full text-yellow-600"><FiClock size={24} /></div>
             </div>
           </div>
 
-          <div onClick={() => aoClicarNoCard('Em Produção')} className="bg-white rounded-lg shadow-md p-6 border-t-4 border-blue-500 cursor-pointer transform transition-transform hover:scale-105">
+          
+          <div onClick={() => aoClicarNoCard('Aprovados')} className="bg-white rounded-lg shadow-md p-5 border-t-4 border-emerald-500 cursor-pointer transform transition-transform hover:scale-105">
             <div className="flex justify-between items-center">
               <div>
-                <p className="text-gray-500 text-xs font-bold uppercase tracking-wide">Em Produção (No Prazo)</p>
-                <h3 className="text-3xl font-bold text-gray-800 mt-2">{totais.emProducao}</h3>
+                <p className="text-gray-500 text-[10px] font-bold uppercase tracking-wide">Aprovados</p>
+                <h3 className="text-2xl font-bold text-gray-800 mt-1">{totais.aprovados}</h3>
               </div>
-              <div className="p-3 bg-blue-100 rounded-full text-blue-600"><FiTool size={28} /></div>
+              <div className="p-2 bg-emerald-100 rounded-full text-emerald-600"><FiCheckCircle size={24} /></div>
             </div>
           </div>
 
-          <div onClick={() => aoClicarNoCard('Atrasados')} className="bg-white rounded-lg shadow-md p-6 border-t-4 border-red-500 cursor-pointer transform transition-transform hover:scale-105">
+          <div onClick={() => aoClicarNoCard('Em Produção')} className="bg-white rounded-lg shadow-md p-5 border-t-4 border-blue-500 cursor-pointer transform transition-transform hover:scale-105">
             <div className="flex justify-between items-center">
               <div>
-                <p className="text-gray-500 text-xs font-bold uppercase tracking-wide">Atrasados</p>
-                <h3 className="text-3xl font-bold text-red-600 mt-2">{totais.atrasados}</h3>
+                <p className="text-gray-500 text-[10px] font-bold uppercase tracking-wide">Em Produção</p>
+                <h3 className="text-2xl font-bold text-gray-800 mt-1">{totais.emProducao}</h3>
               </div>
-              <div className="p-3 bg-red-100 rounded-full text-red-600"><FiAlertCircle size={28} /></div>
+              <div className="p-2 bg-blue-100 rounded-full text-blue-600"><FiTool size={24} /></div>
+            </div>
+          </div>
+          
+          <div onClick={() => aoClicarNoCard('Concluídos')} className="bg-white rounded-lg shadow-md p-5 border-t-4 border-purple-500 cursor-pointer transform transition-transform hover:scale-105">
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="text-gray-500 text-[10px] font-bold uppercase tracking-wide">Concluídos</p>
+                <h3 className="text-2xl font-bold text-gray-800 mt-1">{totais.concluidos}</h3>
+              </div>
+              <div className="p-2 bg-purple-100 rounded-full text-purple-600"><FiCheckCircle size={24} /></div>
             </div>
           </div>
 
-          {/* NOVO CARD: Entregues */}
-          <div onClick={() => aoClicarNoCard('Entregues')} className="bg-white rounded-lg shadow-md p-6 border-t-4 border-green-500 cursor-pointer transform transition-transform hover:scale-105">
+          <div onClick={() => aoClicarNoCard('Atrasados')} className="bg-white rounded-lg shadow-md p-5 border-t-4 border-red-500 cursor-pointer transform transition-transform hover:scale-105">
             <div className="flex justify-between items-center">
               <div>
-                <p className="text-gray-500 text-xs font-bold uppercase tracking-wide">Entregues</p>
-                <h3 className="text-3xl font-bold text-gray-800 mt-2">{totais.entregues}</h3>
+                <p className="text-gray-500 text-[10px] font-bold uppercase tracking-wide">Atrasados</p>
+                <h3 className="text-2xl font-bold text-red-600 mt-1">{totais.atrasados}</h3>
               </div>
-              <div className="p-3 bg-green-100 rounded-full text-green-600"><FiCheckCircle size={28} /></div>
+              <div className="p-2 bg-red-100 rounded-full text-red-600"><FiAlertCircle size={24} /></div>
             </div>
           </div>
+
+          <div onClick={() => aoClicarNoCard('Entregues')} className="bg-white rounded-lg shadow-md p-5 border-t-4 border-gray-500 cursor-pointer transform transition-transform hover:scale-105">
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="text-gray-500 text-[10px] font-bold uppercase tracking-wide">Entregues</p>
+                <h3 className="text-2xl font-bold text-gray-800 mt-1">{totais.entregues}</h3>
+              </div>
+              <div className="p-2 bg-gray-100 rounded-full text-gray-600"><FiCheckCircle size={24} /></div>
+            </div>
+          </div>
+
         </div>
       </section>
 

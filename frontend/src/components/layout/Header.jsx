@@ -14,7 +14,7 @@ const Header = ({ setIsMobileMenuOpen }) => {
   const nomePerfil = perfisMap[usuario?.perfil] || "Usuário";
 
   return (
-    <header className="bg-brand-blue shadow-sm p-2 flex justify-between items-center md:hidden z-10">
+        <header className="bg-brand-blue shadow-sm p-2 flex justify-between items-center md:hidden sticky top-0 w-full z-50">
       {/* Botão de menu hambúrguer */}
       <button
         onClick={() => setIsMobileMenuOpen(true)}
