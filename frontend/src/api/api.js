@@ -1,8 +1,8 @@
 import axios from 'axios';
 
 const api = axios.create({
-//baseURL: 'https://a2toldos-backend.onrender.com',
-baseURL: 'http://localhost:3000',
+baseURL: 'https://a2toldos-backend.onrender.com',
+//baseURL: 'http://localhost:3000',
 });
 
 api.interceptors.request.use(async (config) => {
@@ -21,10 +21,7 @@ api.interceptors.response.use(
     if (error.response && error.response.status === 401) {
       localStorage.removeItem('authToken');
       
-      // AQUI ESTÁ A MUDANÇA
-      // Em vez de mostrar um toast, nós disparamos um evento customizado.
-      // A aplicação principal (App.jsx) estará ouvindo por este evento.
-      window.dispatchEvent(new Event('sessionExpired'));
+       window.dispatchEvent(new Event('sessionExpired'));
     }
     
     return Promise.reject(error);
