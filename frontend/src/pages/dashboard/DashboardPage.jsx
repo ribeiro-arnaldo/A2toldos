@@ -61,13 +61,13 @@ const DashboardPage = () => {
       case "APROVADO": case "Aprovado": colorClass = "bg-emerald-500 text-white"; break;
       case "REPROVADO": case "Reprovado": colorClass = "bg-red-500 text-white"; break;
       case "EM_PRODUCAO": case "Em Produção": case "EM PRODUCAO": colorClass = "bg-blue-500 text-white"; break;
-      case "CONCLUIDO": case "Concluído": colorClass = "bg-purple-500 text-white"; break;
+      case "CONCLUIDO": case "Concluído": case "CONCLUÍDO": colorClass = "bg-purple-500 text-white"; break;
       case "ENTREGUE": case "Entregue": colorClass = "bg-gray-500 text-white"; break;
       case "Atrasado": colorClass = "bg-red-100 text-red-700 ring-2 ring-red-600 animate-pulse"; break;
       default: colorClass = "bg-gray-200 text-gray-800";
     }
     return (
-      <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase whitespace-nowrap ${colorClass}`}>
+      <span className={`px-2 py-0.5 sm:px-3 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold uppercase whitespace-nowrap ${colorClass}`}>
         {status}
       </span>
     );
@@ -294,7 +294,7 @@ const DashboardPage = () => {
                         {orc.cliente}
                       </td>
                       
-                      <td className="px-6 py-4">{getStatusBadge(orc.status)}</td>
+                      <td className="px-3 sm:px-6 py-4">{getStatusBadge(orc.status)}</td>
                       <td className="px-6 py-4 font-bold text-gray-500">{orc.prazo_entrega || 'A definir'}</td>
                     </tr>
                   ))
